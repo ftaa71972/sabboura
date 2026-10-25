@@ -352,7 +352,8 @@ function sample(){const it=[];const txt=(v,x,y,s,c)=>it.push({t:'text',v,c,s,x,y
   txt('مثال من الطالبات',520,480,40,'#1E8E4E');
   it.push({t:'stroke',tool:'marker',c:'#F2C14E',s:30,p:[[1330,370],[1180,372],[1030,368],[880,371]]});
   return it;}
-try{const s=JSON.parse(localStorage.getItem('sabboura.v1')||'null');if(s&&s.pages&&s.pages.length){pages=s.pages;cur=Math.min(s.cur||0,pages.length-1);if(s.students){students=s.students.map(x=>x.n).join('|')===OLD_SAMPLE?[]:s.students;}}else pages[0].items=sample();}catch(e){pages[0].items=sample();}
+try{const s=JSON.parse(localStorage.getItem('sabboura.v1')||'null');if(s&&s.pages&&s.pages.length){pages=s.pages;cur=Math.min(s.cur||0,pages.length-1);if(s.students){students=s.students.map(x=>x.n).join('|')===OLD_SAMPLE?[]:s.students;}
+  const SAMPLE=JSON.stringify(sample());pages.forEach(pg=>{if(JSON.stringify(pg.items)===SAMPLE)pg.items=[];});}}catch(e){}
 pages.forEach((_,i)=>{undoS[i]=[];redoS[i]=[];});
 renderStudents();tShow();fit();
 })();
