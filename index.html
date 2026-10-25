@@ -242,12 +242,13 @@ let armed=false;$('clearBtn').onclick=()=>{if(!armed){armed=true;$('clearBtn').t
 /* ---------- pointer ---------- */
 const pt=e=>{const r=cLive.getBoundingClientRect();return [(e.clientX-r.left)/scale,(e.clientY-r.top)/scale];};
 let drawing=null,moving=null,drawPid=null,penSeen=false;const touches=new Set();
-/* one finger draws; two or more fingers, a palm, or a finger while a pen is in use never draw */
+/* one finger (or a pen, or the mouse) draws; a second finger on the screen cancels the stroke instead of drawing */
 function cancelDraw(){if(drawing||moving){drawing=null;moving=null;drawPid=null;render();}}
-function isPalm(e){return e.pointerType==='touch'&&((e.width||0)>45||(e.height||0)>45);}
+function isPalm(e){return false;}
+let penAt=0;
 cLive.addEventListener('pointerdown',e=>{if(e.button>0)return;
-  if(e.pointerType==='pen')penSeen=true;
-  if(e.pointerType==='touch'){touches.add(e.pointerId);if(touches.size>1||penSeen||isPalm(e)){cancelDraw();return;}}
+  if(e.pointerType==='pen')penAt=Date.now();
+  if(e.pointerType==='touch'){touches.add(e.pointerId);if(touches.size>1||(drawPid!==null&&Date.now()-penAt<1500)){cancelDraw();return;}}
   if(drawPid!==null&&drawPid!==e.pointerId){cancelDraw();return;}
   drawPid=e.pointerId;cLive.setPointerCapture(e.pointerId);const p=pt(e);
   if(tool==='text'){openText(p);return;}
@@ -257,7 +258,7 @@ cLive.addEventListener('pointerdown',e=>{if(e.button>0)return;
   if(['line','arrow','rect','ellipse'].includes(tool))drawing={t:'shape',k:tool,c:color,s:size,r:[p[0],p[1],p[0],p[1]]};
   else drawing={t:'stroke',tool,c:paperInk(color),s:Math.round(w*10)/10,p:[[Math.round(p[0]),Math.round(p[1])]]};
   live();});
-cLive.addEventListener('pointermove',e=>{if(e.pointerId!==drawPid)return;if(isPalm(e)){cancelDraw();return;}const p=pt(e);
+cLive.addEventListener('pointermove',e=>{if(e.pointerId!==drawPid)return;if(e.pointerType==='pen')penAt=Date.now();const p=pt(e);
   if(moving){const it=moving.it;if(moving.resize){it.w=Math.max(60,p[0]-it.x);it.h=it.w/moving.ar;}else{it.x=p[0]-moving.dx;it.y=p[1]-moving.dy;}render();return;}
   if(!drawing)return;
   if(drawing.t==='shape'){drawing.r[2]=p[0];drawing.r[3]=p[1];if(e.shiftKey&&(tool==='rect'||tool==='ellipse')){const d=Math.max(Math.abs(p[0]-drawing.r[0]),Math.abs(p[1]-drawing.r[1]));drawing.r[2]=drawing.r[0]+Math.sign(p[0]-drawing.r[0])*d;drawing.r[3]=drawing.r[1]+Math.sign(p[1]-drawing.r[1])*d;}}
