@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="سبورة ذكية مجانية للمعلمات: كتابة بالإصبع والقلم، أوراق مسطّرة، صور وPDF، نقاط الطلاب ومؤقت">
+<title>سبّورة فتّاح الذكية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Aref+Ruqaa:wght@700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<style>
+/* Layout: classroom wall — tool rail on the right (RTL), board fills the middle, class roster slides in on the left */
+:root{
+  --wall:#E9EEF0; --panel:#FFFFFF; --ink:#16323A; --mut:#5E7780; --line:#D3DDE1;
+  --accent:#0E7C74; --accent-ink:#FFFFFF; --chalk:#F2C14E; --good:#2E9E5B; --bad:#C8463D;
+  --shadow:0 8px 24px rgba(22,50,58,.10);
+  --f-ui:"Readex Pro","Segoe UI",Tahoma,sans-serif; --f-title:"Aref Ruqaa","Readex Pro",serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --wall:#0F1A1E; --panel:#17262C; --ink:#E3EEF0; --mut:#93ABB2; --line:#2A3D44;
+  --accent:#2BB3A6; --accent-ink:#06211E; --chalk:#F2C14E; --good:#4CC17E; --bad:#E2675D;
+  --shadow:0 8px 24px rgba(0,0,0,.35); color-scheme:dark}}
+:root[data-theme="dark"]{--wall:#0F1A1E; --panel:#17262C; --ink:#E3EEF0; --mut:#93ABB2; --line:#2A3D44;
+  --accent:#2BB3A6; --accent-ink:#06211E; --chalk:#F2C14E; --good:#4CC17E; --bad:#E2675D; --shadow:0 8px 24px rgba(0,0,0,.35); color-scheme:dark}
+html,body{height:100%}
+body{background:var(--wall);color:var(--ink);font-family:var(--f-ui);font-size:14px;margin:0;overflow:hidden}
+#app{height:100%;display:grid;grid-template-rows:auto 1fr;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-block:10px;gap:10px;box-sizing:border-box}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.brand{font-family:var(--f-title);font-size:26px;line-height:1;color:var(--accent);margin-inline-end:auto;white-space:nowrap}
+.brand small{font-family:var(--f-ui);font-size:12px;color:var(--mut);margin-inline-start:8px;font-weight:500}
+.grp{display:flex;align-items:center;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px;box-shadow:var(--shadow)}
+button,select{font-family:inherit;font-size:13px;color:var(--ink);background:transparent;border:0;border-radius:9px;padding:7px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+button:hover{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.on{background:var(--accent);color:var(--accent-ink)}
+button.primary{background:var(--accent);color:var(--accent-ink);font-weight:600}
+button:disabled{opacity:.4;cursor:default}
+select{border:1px solid var(--line);background:var(--panel)}
+svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.pageno{font-variant-numeric:tabular-nums;min-width:52px;text-align:center;font-weight:600}
+main{display:grid;grid-template-columns:auto 1fr auto;gap:10px;min-height:0}
+.rail{display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px;box-shadow:var(--shadow);overflow-y:auto}
+.rail button{justify-content:center;width:44px;height:44px;padding:0}
+.rail .sep{height:1px;background:var(--line);margin:4px 2px}
+.swatches{display:grid;grid-template-columns:repeat(2,20px);gap:6px;justify-content:center;padding:4px 0}
+.rail .sw{width:22px;height:22px;border-radius:50%;padding:0;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--line)}
+.sw.on{box-shadow:0 0 0 2px var(--accent)}
+.sizes{display:flex;flex-direction:column;align-items:center;gap:4px}
+.sizes button{width:44px;height:30px}
+.dot{border-radius:50%;background:currentColor;display:block}
+#stage{position:relative;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+#boardWrap{position:relative;box-shadow:var(--shadow);border-radius:14px;overflow:hidden;touch-action:none;background:#fff}
+#boardWrap canvas{position:absolute;inset:0;width:100%;height:100%}
+#textBox{position:absolute;display:none;min-width:120px;padding:4px 6px;border:2px dashed var(--accent);background:rgba(255,255,255,.85);font-family:var(--f-ui);outline:none;direction:rtl;white-space:pre}
+.toast{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--wall);padding:10px 16px;border-radius:12px;font-weight:500;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50}
+.toast.show{opacity:1}
+/* roster */
+.roster{width:270px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.roster[hidden]{display:none!important}
+.roster h2{font-size:15px;margin:0;padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between}
+.roster h2 span{color:var(--mut);font-weight:500;font-size:12px}
+.addrow{display:flex;gap:6px;padding:0 12px 10px}
+.addrow input{flex:1;min-width:0;font-family:inherit;font-size:13px;border:1px solid var(--line);background:var(--wall);color:var(--ink);border-radius:9px;padding:7px 9px}
+#students{list-style:none;margin:0;padding:0 8px 8px;overflow-y:auto;flex:1}
+#students li{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:4px;padding:6px 6px;border-radius:10px}
+#students li.pick{background:color-mix(in srgb,var(--chalk) 35%,transparent)}
+#students .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#students .pts{font-variant-numeric:tabular-nums;font-weight:700;min-width:28px;text-align:center;border-radius:8px;padding:2px 4px}
+#students .pts.pos{color:var(--good)} #students .pts.neg{color:var(--bad)}
+#students button{padding:4px 7px;font-weight:700}
+.tools2{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 12px;border-top:1px solid var(--line)}
+.timer{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:6px;background:var(--wall);border-radius:10px;padding:6px 8px}
+.timer b{font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:.04em}
+.timer.end b{color:var(--bad)}
+.picked{grid-column:1/-1;text-align:center;font-family:var(--f-title);font-size:24px;color:var(--accent);min-height:30px}
+.example{font-size:11px;color:var(--mut);padding:0 14px 6px}
+@media (max-width:820px){
+  main{grid-template-columns:1fr;grid-template-rows:1fr auto}
+  .rail{flex-direction:row;overflow-x:auto;order:2;padding:6px}
+  .rail .sep{width:1px;height:auto;margin:2px 4px}
+  .swatches{grid-template-columns:repeat(8,20px);align-items:center}
+  .sizes{flex-direction:row}
+  .roster{position:fixed;inset:auto 0 0 0;width:auto;max-height:60%;border-radius:18px 18px 0 0;z-index:30;padding-bottom:env(safe-area-inset-bottom,0px);margin-inline:max(0px,env(safe-area-inset-left,0px))}
+  .brand small{display:none}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}*{box-sizing:border-box}</style>
+</head>
+<body>
+<div id="app" dir="rtl">
+  <header>
+    <div class="brand">سبّورتي<small>سبورة ذكية للمعلمة</small></div>
+    <div class="grp" role="group" aria-label="الورقة">
+      <select id="paper" aria-label="نوع الورقة">
+        <option value="plain">ورقة بيضاء</option>
+        <option value="ar">مسطّر عربي</option>
+        <option value="en">أربع خطوط إنجليزي</option>
+        <option value="grid">مربعات رياضيات</option>
+        <option value="chalk">سبورة خضرا</option>
+      </select>
+    </div>
+    <div class="grp" role="group" aria-label="الصفحات">
+      <button id="prevP" title="الصفحة السابقة" aria-label="الصفحة السابقة"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+      <span class="pageno" id="pageNo">1 / 1</span>
+      <button id="nextP" title="الصفحة التالية" aria-label="الصفحة التالية"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <button id="addP" title="صفحة جديدة"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>صفحة</button>
+    </div>
+    <div class="grp" role="group" aria-label="رفع">
+      <button id="upImg"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-9 8"/></svg>صورة</button>
+      <button id="upPdf"><svg class="i" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg>PDF</button>
+      <input type="file" id="fImg" accept="image/*" hidden>
+      <input type="file" id="fPdf" accept="application/pdf" hidden>
+    </div>
+    <div class="grp">
+      <button id="undo" title="تراجع" aria-label="تراجع"><svg class="i" viewBox="0 0 24 24"><path d="M14 7h-5a5 5 0 000 10h7"/><path d="M14 3l4 4-4 4" transform="matrix(-1 0 0 1 28 0)"/></svg></button>
+      <button id="redo" title="إعادة" aria-label="إعادة"><svg class="i" viewBox="0 0 24 24"><path d="M10 7h5a5 5 0 010 10H8"/><path d="M10 3L6 7l4 4" transform="matrix(-1 0 0 1 16 0)"/></svg></button>
+      <button id="clearBtn" title="مسح الصفحة">مسح الكل</button>
+      <button id="rosterBtn" class="on"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0112 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15 20a5 5 0 016-4.5"/></svg>الطلاب</button>
+    </div>
+  </header>
+
+  <main>
+    <nav class="rail" aria-label="أدوات الرسم">
+      <button data-tool="pen" class="on" title="قلم" aria-label="قلم"><svg class="i" viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/></svg></button>
+      <button data-tool="marker" title="هايلايتر" aria-label="هايلايتر"><svg class="i" viewBox="0 0 24 24"><path d="M9 15l-4 4h6l1-1"/><path d="M9 15l8-8 3 3-8 8z"/></svg></button>
+      <button data-tool="eraser" title="ممحاة" aria-label="ممحاة"><svg class="i" viewBox="0 0 24 24"><path d="M8 20h12"/><path d="M5 15l9-9 5 5-8 8H8z"/></svg></button>
+      <button data-tool="line" title="خط مستقيم" aria-label="خط مستقيم"><svg class="i" viewBox="0 0 24 24"><path d="M5 19L19 5"/></svg></button>
+      <button data-tool="arrow" title="سهم" aria-label="سهم"><svg class="i" viewBox="0 0 24 24"><path d="M5 19L19 5M19 5h-7M19 5v7"/></svg></button>
+      <button data-tool="rect" title="مستطيل" aria-label="مستطيل"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="1"/></svg></button>
+      <button data-tool="ellipse" title="دائرة" aria-label="دائرة"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg></button>
+      <button data-tool="text" title="كتابة نص" aria-label="كتابة نص"><svg class="i" viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg></button>
+      <button data-tool="move" title="تحريك الصور" aria-label="تحريك الصور"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
+      <div class="sep"></div>
+      <div class="swatches" id="swatches"></div>
+      <div class="sep"></div>
+      <div class="sizes" id="sizes"></div>
+    </nav>
+
+    <div id="stage">
+      <div id="boardWrap">
+        <canvas id="cBg"></canvas>
+        <canvas id="cInk"></canvas>
+        <canvas id="cLive"></canvas>
+        <div id="textBox" contenteditable="true" aria-label="نص على السبورة"></div>
+      </div>
+    </div>
+
+    <aside class="roster" id="roster" aria-label="الطلاب">
+      <h2>طلاب الفصل <span id="countLbl"></span></h2>
+      <div class="example" id="exampleNote">أسماء تجريبية، بدّليها بأسماء طالباتك.</div>
+      <form class="addrow" id="addForm">
+        <input id="newName" placeholder="اسم الطالب" autocomplete="off">
+        <button class="primary" type="submit">إضافة</button>
+      </form>
+      <ul id="students"></ul>
+      <div class="tools2">
+        <div class="picked" id="picked" aria-live="polite"></div>
+        <button class="primary" id="pickBtn">اختيار عشوائي</button>
+        <button id="resetPts">تصفير النقاط</button>
+        <div class="timer" id="timerBox">
+          <b id="timerLbl">03:00</b>
+          <div style="display:flex;gap:2px">
+            <button data-min="1">1د</button><button data-min="3">3د</button><button data-min="5">5د</button>
+            <button id="timerGo" aria-label="تشغيل المؤقت">▶</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(()=>{
+const W=1600,H=1000; // board world size (16:10)
+const $=id=>document.getElementById(id);
+const wrap=$('boardWrap'),cBg=$('cBg'),cInk=$('cInk'),cLive=$('cLive'),tb=$('textBox');
+const gBg=cBg.getContext('2d'),gInk=cInk.getContext('2d'),gLive=cLive.getContext('2d');
+const COLORS=['#16323A','#1D5FD0','#D3352B','#1E8E4E','#E08A12','#7B3FC4','#FFFFFF','#F2C14E'];
+const SIZES=[3,6,12,24];
+let tool='pen',color=COLORS[0],size=6,paper='ar';
+let pages=[{items:[],paper:'ar'}],cur=0,undoS=[[]],redoS=[[]];
+let scale=1,dpr=Math.min(window.devicePixelRatio||1,2);
+const imgCache=new Map();
+
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),1800);}
+function save(){try{localStorage.setItem('sabboura.v1',JSON.stringify({pages,cur,students}));}catch(e){}}
+
+/* ---------- layout ---------- */
+function fit(){const st=$('stage').getBoundingClientRect();let w=st.width,h=w*H/W;if(h>st.height){h=st.height;w=h*W/H;}
+  w=Math.max(200,Math.floor(w));h=Math.floor(w*H/W);wrap.style.width=w+'px';wrap.style.height=h+'px';scale=w/W;
+  [cBg,cInk,cLive].forEach(c=>{c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);});render();}
+new ResizeObserver(fit).observe($('stage'));
+
+/* ---------- paper ---------- */
+function drawPaper(g,kind){g.save();
+  if(kind==='chalk'){g.fillStyle='#1F4D3A';g.fillRect(0,0,W,H);g.strokeStyle='rgba(255,255,255,.04)';for(let i=0;i<60;i++){g.beginPath();g.moveTo(Math.random()*W,Math.random()*H);g.lineTo(Math.random()*W,Math.random()*H);g.stroke();}g.restore();return;}
+  g.fillStyle='#FFFFFF';g.fillRect(0,0,W,H);
+  if(kind==='ar'){g.strokeStyle='#B9D3F0';g.lineWidth=2;for(let y=120;y<H;y+=70){g.beginPath();g.moveTo(40,y);g.lineTo(W-40,y);g.stroke();}
+    g.strokeStyle='#F0A9A4';g.beginPath();g.moveTo(W-120,40);g.lineTo(W-120,H-20);g.stroke();}
+  if(kind==='en'){for(let y=110;y<H-60;y+=130){[[0,'#7FA7D9',2],[30,'#D7E3F2',1.5],[60,'#D3352B',2],[90,'#7FA7D9',2]].forEach(([o,c,w])=>{g.strokeStyle=c;g.lineWidth=w;if(o===30){g.setLineDash([10,10]);}else g.setLineDash([]);g.beginPath();g.moveTo(40,y+o);g.lineTo(W-40,y+o);g.stroke();});}g.setLineDash([]);}
+  if(kind==='grid'){g.strokeStyle='#DCE6EE';g.lineWidth=1;for(let x=0;x<=W;x+=40){g.beginPath();g.moveTo(x,0);g.lineTo(x,H);g.stroke();}for(let y=0;y<=H;y+=40){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke();}
+    g.strokeStyle='#B8CBDA';g.lineWidth=1.5;for(let x=0;x<=W;x+=200){g.beginPath();g.moveTo(x,0);g.lineTo(x,H);g.stroke();}for(let y=0;y<=H;y+=200){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke();}}
+  g.restore();}
+
+/* ---------- render ---------- */
+function setT(g){g.setTransform(dpr*scale,0,0,dpr*scale,0,0);}
+function getImg(src){let im=imgCache.get(src);if(!im){im=new Image();im.onload=()=>render();im.src=src;imgCache.set(src,im);}return im;}
+function drawItem(g,it){g.save();
+  if(it.t==='stroke'){g.globalCompositeOperation=it.tool==='eraser'?'destination-out':'source-over';g.globalAlpha=it.tool==='marker'?0.35:1;
+    g.strokeStyle=it.c;g.lineCap='round';g.lineJoin='round';const p=it.p;
+    if(p.length===1){g.fillStyle=it.c;g.beginPath();g.arc(p[0][0],p[0][1],it.s/2,0,7);g.fill();}
+    else{g.lineWidth=it.s;g.beginPath();g.moveTo(p[0][0],p[0][1]);for(let i=1;i<p.length-1;i++){const mx=(p[i][0]+p[i+1][0])/2,my=(p[i][1]+p[i+1][1])/2;g.quadraticCurveTo(p[i][0],p[i][1],mx,my);}const l=p[p.length-1];g.lineTo(l[0],l[1]);g.stroke();}}
+  else if(it.t==='shape'){g.strokeStyle=it.c;g.lineWidth=it.s;g.lineCap='round';g.lineJoin='round';const [x1,y1,x2,y2]=it.r;g.beginPath();
+    if(it.k==='line'||it.k==='arrow'){g.moveTo(x1,y1);g.lineTo(x2,y2);if(it.k==='arrow'){const a=Math.atan2(y2-y1,x2-x1),L=18+it.s*2;g.moveTo(x2,y2);g.lineTo(x2-L*Math.cos(a-0.45),y2-L*Math.sin(a-0.45));g.moveTo(x2,y2);g.lineTo(x2-L*Math.cos(a+0.45),y2-L*Math.sin(a+0.45));}}
+    else if(it.k==='rect'){g.rect(Math.min(x1,x2),Math.min(y1,y2),Math.abs(x2-x1),Math.abs(y2-y1));}
+    else if(it.k==='ellipse'){g.ellipse((x1+x2)/2,(y1+y2)/2,Math.abs(x2-x1)/2||1,Math.abs(y2-y1)/2||1,0,0,7);}
+    g.stroke();}
+  else if(it.t==='text'){g.fillStyle=it.c;g.font=`600 ${it.s}px "Readex Pro",Tahoma,sans-serif`;g.textAlign='right';g.textBaseline='top';g.direction='rtl';
+    it.v.split('\n').forEach((ln,i)=>g.fillText(ln,it.x,it.y+i*it.s*1.3));}
+  g.restore();}
+function render(){const pg=pages[cur];
+  setT(gBg);gBg.clearRect(0,0,W,H);drawPaper(gBg,pg.paper);
+  pg.items.filter(i=>i.t==='img').forEach(it=>{const im=getImg(it.src);if(im.complete&&im.naturalWidth){gBg.drawImage(im,it.x,it.y,it.w,it.h);
+    if(tool==='move'){gBg.save();gBg.strokeStyle='#0E7C74';gBg.setLineDash([10,8]);gBg.lineWidth=3;gBg.strokeRect(it.x,it.y,it.w,it.h);gBg.setLineDash([]);gBg.fillStyle='#0E7C74';gBg.fillRect(it.x+it.w-14,it.y+it.h-14,28,28);gBg.restore();}}});
+  setT(gInk);gInk.clearRect(0,0,W,H);pg.items.filter(i=>i.t!=='img').forEach(it=>drawItem(gInk,it));
+  setT(gLive);gLive.clearRect(0,0,W,H);
+  $('pageNo').textContent=(cur+1)+' / '+pages.length;$('prevP').disabled=cur===0;$('nextP').disabled=cur===pages.length-1;
+  $('undo').disabled=!undoS[cur]||!undoS[cur].length;$('redo').disabled=!redoS[cur]||!redoS[cur].length;
+  $('paper').value=pg.paper;wrap.style.background=pg.paper==='chalk'?'#1F4D3A':'#fff';}
+
+/* ---------- history ---------- */
+function commit(){undoS[cur]=undoS[cur]||[];undoS[cur].push(JSON.stringify(pages[cur].items));if(undoS[cur].length>60)undoS[cur].shift();redoS[cur]=[];}
+$('undo').onclick=()=>{const u=undoS[cur];if(!u||!u.length)return;redoS[cur].push(JSON.stringify(pages[cur].items));pages[cur].items=JSON.parse(u.pop());render();save();};
+$('redo').onclick=()=>{const r=redoS[cur];if(!r||!r.length)return;undoS[cur].push(JSON.stringify(pages[cur].items));pages[cur].items=JSON.parse(r.pop());render();save();};
+let armed=false;$('clearBtn').onclick=()=>{if(!armed){armed=true;$('clearBtn').textContent='تأكيد المسح؟';setTimeout(()=>{armed=false;$('clearBtn').textContent='مسح الكل';},2500);return;}
+  armed=false;$('clearBtn').textContent='مسح الكل';commit();pages[cur].items=[];render();save();toast('انمسحت الصفحة. تقدرين ترجعينها بالتراجع');};
+
+/* ---------- pointer ---------- */
+const pt=e=>{const r=cLive.getBoundingClientRect();return [(e.clientX-r.left)/scale,(e.clientY-r.top)/scale];};
+let drawing=null,moving=null;
+cLive.addEventListener('pointerdown',e=>{if(e.button>0)return;cLive.setPointerCapture(e.pointerId);const p=pt(e);
+  if(tool==='text'){openText(p);return;}
+  if(tool==='move'){const its=pages[cur].items.filter(i=>i.t==='img').reverse();const hit=its.find(i=>p[0]>=i.x&&p[0]<=i.x+i.w&&p[1]>=i.y&&p[1]<=i.y+i.h);
+    if(hit){commit();const corner=p[0]>hit.x+hit.w-40&&p[1]>hit.y+hit.h-40;moving={it:hit,dx:p[0]-hit.x,dy:p[1]-hit.y,resize:corner,ar:hit.w/hit.h};}return;}
+  const w=(tool==='eraser'?size*3:tool==='marker'?size*3:size)*(e.pointerType==='pen'&&e.pressure?0.6+e.pressure*0.8:1);
+  if(['line','arrow','rect','ellipse'].includes(tool))drawing={t:'shape',k:tool,c:color,s:size,r:[p[0],p[1],p[0],p[1]]};
+  else drawing={t:'stroke',tool,c:paperInk(color),s:Math.round(w*10)/10,p:[[Math.round(p[0]),Math.round(p[1])]]};
+  live();});
+cLive.addEventListener('pointermove',e=>{const p=pt(e);
+  if(moving){const it=moving.it;if(moving.resize){it.w=Math.max(60,p[0]-it.x);it.h=it.w/moving.ar;}else{it.x=p[0]-moving.dx;it.y=p[1]-moving.dy;}render();return;}
+  if(!drawing)return;
+  if(drawing.t==='shape'){drawing.r[2]=p[0];drawing.r[3]=p[1];if(e.shiftKey&&(tool==='rect'||tool==='ellipse')){const d=Math.max(Math.abs(p[0]-drawing.r[0]),Math.abs(p[1]-drawing.r[1]));drawing.r[2]=drawing.r[0]+Math.sign(p[0]-drawing.r[0])*d;drawing.r[3]=drawing.r[1]+Math.sign(p[1]-drawing.r[1])*d;}}
+  else{const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];evs.forEach(ev=>{const q=pt(ev);const l=drawing.p[drawing.p.length-1];if(Math.hypot(q[0]-l[0],q[1]-l[1])>1.2)drawing.p.push([Math.round(q[0]),Math.round(q[1])]);});}
+  live();});
+function endDraw(){if(moving){moving=null;save();return;}if(!drawing)return;commit();pages[cur].items.push(drawing);drawing=null;render();save();}
+cLive.addEventListener('pointerup',endDraw);cLive.addEventListener('pointercancel',endDraw);
+function live(){setT(gLive);gLive.clearRect(0,0,W,H);if(!drawing)return;
+  if(drawing.t==='stroke'&&drawing.tool==='eraser'){gLive.save();gLive.strokeStyle='rgba(14,124,116,.5)';gLive.lineWidth=2;const l=drawing.p[drawing.p.length-1];gLive.beginPath();gLive.arc(l[0],l[1],drawing.s/2,0,7);gLive.stroke();gLive.restore();
+    // erase live on ink layer for feedback
+    setT(gInk);drawItem(gInk,{...drawing,p:drawing.p.slice(-3)});return;}
+  drawItem(gLive,drawing);}
+function paperInk(c){return pages[cur].paper==='chalk'&&c==='#16323A'?'#FFFFFF':c;}
+
+/* ---------- text ---------- */
+function openText(p){tb.style.display='block';tb.style.left=(p[0]*scale-140)+'px';tb.style.top=(p[1]*scale)+'px';tb.style.fontSize=Math.max(14,size*5*scale)+'px';tb.style.color=paperInk(color);tb.textContent='';tb.dataset.x=p[0];tb.dataset.y=p[1];setTimeout(()=>tb.focus(),0);}
+function closeText(){if(tb.style.display!=='block')return;const v=tb.innerText.replace(/\n$/,'');tb.style.display='none';if(!v.trim())return;
+  commit();const s=Math.max(20,size*5);pages[cur].items.push({t:'text',v,c:paperInk(color),s,x:+tb.dataset.x+140/scale,y:+tb.dataset.y});render();save();}
+tb.addEventListener('blur',closeText);tb.addEventListener('keydown',e=>{if(e.key==='Escape'){tb.textContent='';tb.blur();}if(e.key==='Enter'&&(e.ctrlKey||e.metaKey))tb.blur();});
+
+/* ---------- tools UI ---------- */
+document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>{closeText();tool=b.dataset.tool;document.querySelectorAll('[data-tool]').forEach(x=>x.classList.toggle('on',x===b));cLive.style.cursor=tool==='move'?'move':tool==='text'?'text':'crosshair';render();
+  if(tool==='move'&&!pages[cur].items.some(i=>i.t==='img'))toast('ارفعي صورة أو PDF أول، وبعدها حرّكيها من هني');});
+const swh=$('swatches');COLORS.forEach((c,i)=>{const b=document.createElement('button');b.className='sw'+(i?'':' on');b.style.background=c;b.title=c;b.setAttribute('aria-label','لون '+c);
+  b.onclick=()=>{color=c;swh.querySelectorAll('.sw').forEach(x=>x.classList.toggle('on',x===b));if(tool==='eraser'||tool==='move'){document.querySelector('[data-tool=pen]').click();}};swh.appendChild(b);});
+const szh=$('sizes');SIZES.forEach(s=>{const b=document.createElement('button');b.className=s===size?'on':'';b.title='سماكة '+s;b.setAttribute('aria-label','سماكة '+s);
+  const d=document.createElement('span');d.className='dot';d.style.width=d.style.height=Math.min(18,s*0.8+3)+'px';b.appendChild(d);b.onclick=()=>{size=s;szh.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));};szh.appendChild(b);});
+$('paper').onchange=e=>{pages[cur].paper=e.target.value;render();save();};
+
+/* ---------- pages ---------- */
+function goto(i){closeText();cur=Math.max(0,Math.min(pages.length-1,i));undoS[cur]=undoS[cur]||[];redoS[cur]=redoS[cur]||[];render();save();}
+$('prevP').onclick=()=>goto(cur-1);$('nextP').onclick=()=>goto(cur+1);
+$('addP').onclick=()=>{pages.splice(cur+1,0,{items:[],paper:pages[cur].paper});undoS.splice(cur+1,0,[]);redoS.splice(cur+1,0,[]);goto(cur+1);toast('صفحة جديدة');};
+
+/* ---------- images & pdf ---------- */
+function fitBox(w,h,maxW,maxH){const k=Math.min(maxW/w,maxH/h,1);return [w*k,h*k];}
+function addImageSrc(src,full){const im=new Image();im.onload=()=>{const [w,h]=full?fitBox(im.naturalWidth,im.naturalHeight,W-40,H-40):fitBox(im.naturalWidth,im.naturalHeight,W*0.55,H*0.6);
+  commit();pages[cur].items.push({t:'img',src,x:(W-w)/2,y:(H-h)/2,w,h});imgCache.set(src,im);render();save();if(!full)toast('انضافت الصورة. اختاري أداة التحريك عشان تحركينها أو تكبرينها');};im.src=src;}
+function shrink(file,maxSide){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,maxSide/Math.max(im.naturalWidth,im.naturalHeight));
+  const c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*k);c.height=Math.round(im.naturalHeight*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',0.86));};im.onerror=rej;im.src=r.result;};r.onerror=rej;r.readAsDataURL(file);});}
+$('upImg').onclick=()=>$('fImg').click();$('upPdf').onclick=()=>$('fPdf').click();
+$('fImg').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{addImageSrc(await shrink(f,1600));}catch(err){toast('ما قدرت أفتح الصورة، جربي صيغة JPG أو PNG');}};
+$('fPdf').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;loadPdf(f);};
+async function loadPdf(f){if(!window.pdfjsLib){toast('قارئ PDF ما اشتغل، حدّثي الصفحة وجربي مرة ثانية');return;}
+  toast('جاري فتح الملف…');try{const buf=await f.arrayBuffer();const pdf=await pdfjsLib.getDocument({data:buf}).promise;const n=Math.min(pdf.numPages,30);const start=pages[cur].items.length?cur+1:cur;
+    for(let i=1;i<=n;i++){const pg=await pdf.getPage(i);const vp0=pg.getViewport({scale:1});const vp=pg.getViewport({scale:Math.min(2,1500/vp0.width)});
+      const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;const src=c.toDataURL('image/jpeg',0.85);
+      const [w,h]=fitBox(vp.width,vp.height,W-40,H-40);const idx=start+i-1;if(!pages[idx]||(i>1||pages[idx].items.length)){pages.splice(idx,0,{items:[],paper:'plain'});undoS.splice(idx,0,[]);redoS.splice(idx,0,[]);}
+      pages[idx].paper='plain';pages[idx].items.push({t:'img',src,x:(W-w)/2,y:(H-h)/2,w,h});}
+    goto(start);toast(n<pdf.numPages?`انفتحت أول ${n} صفحة من ${pdf.numPages}`:`انفتح الملف: ${n} صفحة`);}catch(err){toast('ما قدرت أفتح ملف PDF هذا');}}
+wrap.addEventListener('dragover',e=>e.preventDefault());
+wrap.addEventListener('drop',async e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(!f)return;if(f.type==='application/pdf')loadPdf(f);else if(f.type.startsWith('image/'))addImageSrc(await shrink(f,1600));});
+window.addEventListener('paste',async e=>{const it=[...(e.clipboardData||{}).items||[]].find(i=>i.type.startsWith('image/'));if(it&&document.activeElement!==tb){addImageSrc(await shrink(it.getAsFile(),1600));}});
+
+/* ---------- keyboard ---------- */
+window.addEventListener('keydown',e=>{if(document.activeElement===tb||document.activeElement.tagName==='INPUT')return;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();(e.shiftKey?$('redo'):$('undo')).click();}
+  const map={p:'pen',h:'marker',e:'eraser',l:'line',a:'arrow',r:'rect',o:'ellipse',t:'text',v:'move'};const k=map[e.key.toLowerCase()];if(k&&!e.ctrlKey&&!e.metaKey)document.querySelector(`[data-tool=${k}]`).click();});
+
+/* ---------- students ---------- */
+let students=[{n:'مريم',p:3},{n:'سارة',p:1},{n:'نورة',p:2},{n:'فاطمة',p:0},{n:'دانة',p:4},{n:'ريم',p:1}],isExample=true;
+function renderStudents(){const ul=$('students');ul.innerHTML='';students.forEach((s,i)=>{const li=document.createElement('li');li.dataset.i=i;
+  li.innerHTML=`<span class="nm"></span><button aria-label="ناقص نقطة">−</button><span class="pts ${s.p>0?'pos':s.p<0?'neg':''}">${s.p}</span><button aria-label="زيادة نقطة">+</button>`;
+  li.querySelector('.nm').textContent=s.n;const [minus,plus]=li.querySelectorAll('button');minus.onclick=()=>{s.p--;renderStudents();save();};plus.onclick=()=>{s.p++;renderStudents();save();};
+  li.querySelector('.nm').ondblclick=()=>{students.splice(i,1);renderStudents();save();toast('انحذف '+s.n);};
+  ul.appendChild(li);});$('countLbl').textContent=students.length+' طالب';$('exampleNote').hidden=!isExample;}
+$('addForm').addEventListener('submit',e=>{e.preventDefault();const v=$('newName').value.trim();if(!v)return;if(isExample){students=[];isExample=false;}students.push({n:v,p:0});$('newName').value='';renderStudents();save();});
+$('resetPts').onclick=()=>{students.forEach(s=>s.p=0);renderStudents();save();toast('تصفّرت النقاط');};
+$('pickBtn').onclick=()=>{if(!students.length)return;const lis=[...$('students').children];let k=0,steps=14+Math.floor(Math.random()*students.length);
+  const tick=()=>{lis.forEach(l=>l.classList.remove('pick'));const i=k%students.length;lis[i]&&lis[i].classList.add('pick');$('picked').textContent=students[i].n;k++;
+    if(k<steps)setTimeout(tick,60+k*12);else{lis[i].scrollIntoView({block:'nearest'});}};tick();};
+$('rosterBtn').onclick=()=>{const r=$('roster');r.hidden=!r.hidden;$('rosterBtn').classList.toggle('on',!r.hidden);setTimeout(fit,0);};
+if(matchMedia('(max-width:820px)').matches){$('roster').hidden=true;$('rosterBtn').classList.remove('on');}
+
+/* ---------- timer ---------- */
+let tLeft=180,tRun=null;function tShow(){const m=Math.floor(tLeft/60),s=tLeft%60;$('timerLbl').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');$('timerBox').classList.toggle('end',tLeft===0);}
+document.querySelectorAll('[data-min]').forEach(b=>b.onclick=()=>{clearInterval(tRun);tRun=null;tLeft=+b.dataset.min*60;$('timerGo').textContent='▶';tShow();});
+$('timerGo').onclick=()=>{if(tRun){clearInterval(tRun);tRun=null;$('timerGo').textContent='▶';return;}if(tLeft===0)tLeft=180;$('timerGo').textContent='⏸';
+  tRun=setInterval(()=>{tLeft=Math.max(0,tLeft-1);tShow();if(!tLeft){clearInterval(tRun);tRun=null;$('timerGo').textContent='▶';toast('خلص الوقت ⏰');}},1000);};
+
+/* ---------- sample board + restore ---------- */
+function sample(){const it=[];const txt=(v,x,y,s,c)=>it.push({t:'text',v,c,s,x,y});
+  txt('درس اليوم: حروف المد',1440,60,54,'#1D5FD0');
+  txt('ا   و   ي',1300,190,90,'#16323A');
+  txt('قَالَ  ·  يَقُولُ  ·  قِيلَ',1340,330,60,'#16323A');
+  it.push({t:'shape',k:'rect',c:'#D3352B',s:5,r:[700,180,1400,300]});
+  it.push({t:'shape',k:'arrow',c:'#1E8E4E',s:6,r:[560,470,900,370]});
+  txt('مثال من الطالبات',520,480,40,'#1E8E4E');
+  it.push({t:'stroke',tool:'marker',c:'#F2C14E',s:30,p:[[1330,370],[1180,372],[1030,368],[880,371]]});
+  return it;}
+try{const s=JSON.parse(localStorage.getItem('sabboura.v1')||'null');if(s&&s.pages&&s.pages.length){pages=s.pages;cur=Math.min(s.cur||0,pages.length-1);if(s.students){students=s.students;isExample=false;}}else pages[0].items=sample();}catch(e){pages[0].items=sample();}
+pages.forEach((_,i)=>{undoS[i]=[];redoS[i]=[];});
+renderStudents();tShow();fit();
+})();
+</script>
+
+</body>
+</html>
