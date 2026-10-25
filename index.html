@@ -150,7 +150,7 @@ main{display:grid;grid-template-columns:auto 1fr auto;gap:10px;min-height:0}
 
     <aside class="roster" id="roster" aria-label="الطلاب">
       <h2>طلاب الفصل <span id="countLbl"></span></h2>
-      <div class="example" id="exampleNote">أسماء تجريبية، بدّليها بأسماء طالباتك.</div>
+      <div class="example" id="exampleNote">ما فيه طلاب للحين. اكتبي اسم الطالب واضغطي «إضافة».</div>
       <form class="addrow" id="addForm">
         <input id="newName" placeholder="اسم الطالب" autocomplete="off">
         <button class="primary" type="submit">إضافة</button>
@@ -241,8 +241,15 @@ let armed=false;$('clearBtn').onclick=()=>{if(!armed){armed=true;$('clearBtn').t
 
 /* ---------- pointer ---------- */
 const pt=e=>{const r=cLive.getBoundingClientRect();return [(e.clientX-r.left)/scale,(e.clientY-r.top)/scale];};
-let drawing=null,moving=null;
-cLive.addEventListener('pointerdown',e=>{if(e.button>0)return;cLive.setPointerCapture(e.pointerId);const p=pt(e);
+let drawing=null,moving=null,drawPid=null,penSeen=false;const touches=new Set();
+/* one finger draws; two or more fingers, a palm, or a finger while a pen is in use never draw */
+function cancelDraw(){if(drawing||moving){drawing=null;moving=null;drawPid=null;render();}}
+function isPalm(e){return e.pointerType==='touch'&&((e.width||0)>45||(e.height||0)>45);}
+cLive.addEventListener('pointerdown',e=>{if(e.button>0)return;
+  if(e.pointerType==='pen')penSeen=true;
+  if(e.pointerType==='touch'){touches.add(e.pointerId);if(touches.size>1||penSeen||isPalm(e)){cancelDraw();return;}}
+  if(drawPid!==null&&drawPid!==e.pointerId){cancelDraw();return;}
+  drawPid=e.pointerId;cLive.setPointerCapture(e.pointerId);const p=pt(e);
   if(tool==='text'){openText(p);return;}
   if(tool==='move'){const its=pages[cur].items.filter(i=>i.t==='img').reverse();const hit=its.find(i=>p[0]>=i.x&&p[0]<=i.x+i.w&&p[1]>=i.y&&p[1]<=i.y+i.h);
     if(hit){commit();const corner=p[0]>hit.x+hit.w-40&&p[1]>hit.y+hit.h-40;moving={it:hit,dx:p[0]-hit.x,dy:p[1]-hit.y,resize:corner,ar:hit.w/hit.h};}return;}
@@ -250,14 +257,17 @@ cLive.addEventListener('pointerdown',e=>{if(e.button>0)return;cLive.setPointerCa
   if(['line','arrow','rect','ellipse'].includes(tool))drawing={t:'shape',k:tool,c:color,s:size,r:[p[0],p[1],p[0],p[1]]};
   else drawing={t:'stroke',tool,c:paperInk(color),s:Math.round(w*10)/10,p:[[Math.round(p[0]),Math.round(p[1])]]};
   live();});
-cLive.addEventListener('pointermove',e=>{const p=pt(e);
+cLive.addEventListener('pointermove',e=>{if(e.pointerId!==drawPid)return;if(isPalm(e)){cancelDraw();return;}const p=pt(e);
   if(moving){const it=moving.it;if(moving.resize){it.w=Math.max(60,p[0]-it.x);it.h=it.w/moving.ar;}else{it.x=p[0]-moving.dx;it.y=p[1]-moving.dy;}render();return;}
   if(!drawing)return;
   if(drawing.t==='shape'){drawing.r[2]=p[0];drawing.r[3]=p[1];if(e.shiftKey&&(tool==='rect'||tool==='ellipse')){const d=Math.max(Math.abs(p[0]-drawing.r[0]),Math.abs(p[1]-drawing.r[1]));drawing.r[2]=drawing.r[0]+Math.sign(p[0]-drawing.r[0])*d;drawing.r[3]=drawing.r[1]+Math.sign(p[1]-drawing.r[1])*d;}}
   else{const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];evs.forEach(ev=>{const q=pt(ev);const l=drawing.p[drawing.p.length-1];if(Math.hypot(q[0]-l[0],q[1]-l[1])>1.2)drawing.p.push([Math.round(q[0]),Math.round(q[1])]);});}
   live();});
-function endDraw(){if(moving){moving=null;save();return;}if(!drawing)return;commit();pages[cur].items.push(drawing);drawing=null;render();save();}
+function endDraw(e){touches.delete(e.pointerId);if(e.pointerId!==drawPid)return;drawPid=null;
+  if(e.type==='pointercancel'){cancelDraw();return;}
+  if(moving){moving=null;save();return;}if(!drawing)return;commit();pages[cur].items.push(drawing);drawing=null;render();save();}
 cLive.addEventListener('pointerup',endDraw);cLive.addEventListener('pointercancel',endDraw);
+cLive.addEventListener('lostpointercapture',e=>{touches.delete(e.pointerId);});
 function live(){setT(gLive);gLive.clearRect(0,0,W,H);if(!drawing)return;
   if(drawing.t==='stroke'&&drawing.tool==='eraser'){gLive.save();gLive.strokeStyle='rgba(14,124,116,.5)';gLive.lineWidth=2;const l=drawing.p[drawing.p.length-1];gLive.beginPath();gLive.arc(l[0],l[1],drawing.s/2,0,7);gLive.stroke();gLive.restore();
     // erase live on ink layer for feedback
@@ -311,13 +321,14 @@ window.addEventListener('keydown',e=>{if(document.activeElement===tb||document.a
   const map={p:'pen',h:'marker',e:'eraser',l:'line',a:'arrow',r:'rect',o:'ellipse',t:'text',v:'move'};const k=map[e.key.toLowerCase()];if(k&&!e.ctrlKey&&!e.metaKey)document.querySelector(`[data-tool=${k}]`).click();});
 
 /* ---------- students ---------- */
-let students=[{n:'مريم',p:3},{n:'سارة',p:1},{n:'نورة',p:2},{n:'فاطمة',p:0},{n:'دانة',p:4},{n:'ريم',p:1}],isExample=true;
+let students=[];
+const OLD_SAMPLE='مريم|سارة|نورة|فاطمة|دانة|ريم';
 function renderStudents(){const ul=$('students');ul.innerHTML='';students.forEach((s,i)=>{const li=document.createElement('li');li.dataset.i=i;
   li.innerHTML=`<span class="nm"></span><button aria-label="ناقص نقطة">−</button><span class="pts ${s.p>0?'pos':s.p<0?'neg':''}">${s.p}</span><button aria-label="زيادة نقطة">+</button>`;
   li.querySelector('.nm').textContent=s.n;const [minus,plus]=li.querySelectorAll('button');minus.onclick=()=>{s.p--;renderStudents();save();};plus.onclick=()=>{s.p++;renderStudents();save();};
   li.querySelector('.nm').ondblclick=()=>{students.splice(i,1);renderStudents();save();toast('انحذف '+s.n);};
-  ul.appendChild(li);});$('countLbl').textContent=students.length+' طالب';$('exampleNote').hidden=!isExample;}
-$('addForm').addEventListener('submit',e=>{e.preventDefault();const v=$('newName').value.trim();if(!v)return;if(isExample){students=[];isExample=false;}students.push({n:v,p:0});$('newName').value='';renderStudents();save();});
+  ul.appendChild(li);});$('countLbl').textContent=students.length?students.length+' طالب':'';$('exampleNote').hidden=students.length>0;}
+$('addForm').addEventListener('submit',e=>{e.preventDefault();const v=$('newName').value.trim();if(!v)return;students.push({n:v,p:0});$('newName').value='';renderStudents();save();});
 $('resetPts').onclick=()=>{students.forEach(s=>s.p=0);renderStudents();save();toast('تصفّرت النقاط');};
 $('pickBtn').onclick=()=>{if(!students.length)return;const lis=[...$('students').children];let k=0,steps=14+Math.floor(Math.random()*students.length);
   const tick=()=>{lis.forEach(l=>l.classList.remove('pick'));const i=k%students.length;lis[i]&&lis[i].classList.add('pick');$('picked').textContent=students[i].n;k++;
@@ -341,7 +352,7 @@ function sample(){const it=[];const txt=(v,x,y,s,c)=>it.push({t:'text',v,c,s,x,y
   txt('مثال من الطالبات',520,480,40,'#1E8E4E');
   it.push({t:'stroke',tool:'marker',c:'#F2C14E',s:30,p:[[1330,370],[1180,372],[1030,368],[880,371]]});
   return it;}
-try{const s=JSON.parse(localStorage.getItem('sabboura.v1')||'null');if(s&&s.pages&&s.pages.length){pages=s.pages;cur=Math.min(s.cur||0,pages.length-1);if(s.students){students=s.students;isExample=false;}}else pages[0].items=sample();}catch(e){pages[0].items=sample();}
+try{const s=JSON.parse(localStorage.getItem('sabboura.v1')||'null');if(s&&s.pages&&s.pages.length){pages=s.pages;cur=Math.min(s.cur||0,pages.length-1);if(s.students){students=s.students.map(x=>x.n).join('|')===OLD_SAMPLE?[]:s.students;}}else pages[0].items=sample();}catch(e){pages[0].items=sample();}
 pages.forEach((_,i)=>{undoS[i]=[];redoS[i]=[];});
 renderStudents();tShow();fit();
 })();
