@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>سبورة فتاح لصعوبات التعلم</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@500;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FFF8EA; --card:#FFFFFF; --ink:#2B2B33; --muted:#6B6B78; --line:#EADFC8;
+    --brand:#2F7DD1; --brand2:#E9F2FC; --ok:#2E9E5B; --okbg:#E6F6EC; --bad:#D9534F; --badbg:#FCEBEA;
+    --hl:#FFE27A; --key:#B4410F; --fs:30px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Tajawal,system-ui,sans-serif;line-height:1.6}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);background:#FFFDF7;position:sticky;top:0;z-index:5}
+  header h1{margin:0;font-size:22px;font-weight:800}
+  header h1 span{color:var(--brand)}
+  .stars{font-weight:800;font-size:18px;background:#FFF1C2;border-radius:999px;padding:4px 14px}
+  main{max-width:900px;margin:0 auto;padding:20px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;margin-bottom:18px;box-shadow:0 2px 0 rgba(0,0,0,.03)}
+  h2{margin:0 0 10px;font-size:20px}
+  .hint{color:var(--muted);font-size:15px;margin:0 0 14px}
+  textarea{width:100%;min-height:170px;border:2px solid var(--line);border-radius:14px;padding:14px;font-family:'Noto Naskh Arabic',serif;font-size:19px;resize:vertical;background:#FFFEFB;color:var(--ink)}
+  textarea:focus{outline:none;border-color:var(--brand)}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:640px){.grid2{grid-template-columns:1fr}}
+  label.chip{display:inline-flex;align-items:center;gap:8px;border:2px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer;font-weight:500;user-select:none;background:#fff}
+  label.chip:has(input:checked){border-color:var(--brand);background:var(--brand2);color:#174f8c}
+  label.chip input{accent-color:var(--brand)}
+  select{font-family:inherit;font-size:16px;border:2px solid var(--line);border-radius:12px;padding:8px 12px;background:#fff}
+  button{font-family:inherit;font-weight:700;font-size:17px;border:none;border-radius:14px;padding:12px 20px;cursor:pointer;background:#EFE7D6;color:var(--ink);transition:transform .08s}
+  button:active{transform:scale(.97)}
+  button.primary{background:var(--brand);color:#fff}
+  button.big{font-size:20px;padding:15px 28px}
+  button.ghost{background:transparent;border:2px solid var(--line)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .upload{display:block;border:2px dashed var(--line);border-radius:14px;padding:14px;text-align:center;cursor:pointer;color:var(--muted);background:#FFFEFB}
+  .upload img{max-width:100%;max-height:180px;border-radius:10px;display:block;margin:8px auto 0}
+  .err{background:var(--badbg);color:#8a2a27;border-radius:12px;padding:10px 14px;margin-top:12px;display:none}
+  .loading{display:none;align-items:center;gap:12px;margin-top:14px;color:var(--muted);font-weight:500}
+  .spin{width:24px;height:24px;border:3px solid var(--line);border-top-color:var(--brand);border-radius:50%;animation:sp 0.9s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  #preview{max-height:160px;overflow:auto;font-family:'Noto Naskh Arabic',serif;font-size:15px;color:var(--muted);white-space:pre-wrap;margin-top:6px}
+
+  /* lesson */
+  #lesson{display:none}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .toolbar .grp{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .progress{display:flex;gap:6px;margin-bottom:14px}
+  .progress i{flex:1;height:10px;border-radius:99px;background:#EADFC8}
+  .progress i.done{background:var(--ok)}
+  .progress i.now{background:var(--brand)}
+  .chunk-head{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+  .emoji{font-size:58px;line-height:1}
+  .chunk-title{font-size:26px;font-weight:800;margin:0}
+  .text{font-family:'Noto Naskh Arabic',serif;font-size:var(--fs);line-height:2.2;word-spacing:.18em;letter-spacing:0}
+  .text .w{border-radius:8px;padding:0 3px;cursor:pointer;transition:background .12s}
+  .text .w:hover{background:#F3ECDD}
+  .text .w.on{background:var(--hl)}
+  .text .w.key{color:var(--key);font-weight:700;border-bottom:3px dotted var(--key)}
+  .text .sent{display:block}
+  .focus .text .sent{opacity:.28;transition:opacity .2s}
+  .focus .text .sent.cur{opacity:1}
+  .keys{margin-top:18px;background:#FFF6DE;border-radius:14px;padding:12px 16px}
+  .keys b{color:var(--key)}
+  .keys div{font-size:18px;margin:4px 0}
+  .nav{display:flex;justify-content:space-between;gap:10px;margin-top:20px}
+  .timer{height:6px;background:#EEE6D6;border-radius:99px;overflow:hidden;margin-top:14px}
+  .timer i{display:block;height:100%;width:0;background:#F2B53A;transition:width 1s linear}
+  .c1{color:#1F6FD1}.c2{color:#1E9A55}.c3{color:#D9781A}
+  .q{font-family:'Noto Naskh Arabic',serif;font-size:28px;font-weight:700;margin:6px 0 18px}
+  .opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .opt{background:#fff;border:3px solid var(--line);border-radius:18px;padding:18px;font-family:'Noto Naskh Arabic',serif;font-size:24px;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .opt .e{font-size:48px}
+  .opt.right{border-color:var(--ok);background:var(--okbg)}
+  .opt.wrong{border-color:var(--bad);background:var(--badbg)}
+  .feedback{font-size:22px;font-weight:800;margin-top:14px;min-height:34px}
+  .center{text-align:center}
+  .bigstar{font-size:84px;animation:pop .6s ease}
+  @keyframes pop{0%{transform:scale(.3)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+  .note{font-size:14px;color:var(--muted)}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#2B2B33;color:#fff;padding:10px 18px;border-radius:12px;display:none;z-index:9}
+
+  .brandbox h1{line-height:1.2}
+  .slogan{font-size:13px;color:var(--muted);font-weight:500}
+  .hgrp{display:flex;align-items:center;gap:10px}
+  a.join{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#6B4BD8,#2F7DD1);color:#fff;text-decoration:none;font-weight:800;border-radius:999px;padding:9px 16px;font-size:15px;white-space:nowrap}
+  a.join:hover{filter:brightness(1.08)}
+  @media(max-width:640px){header{flex-wrap:wrap} a.join{font-size:13px;padding:7px 12px}}
+  .tabs{display:flex;gap:8px;max-width:900px;margin:14px auto 0;padding:0 20px;flex-wrap:wrap}
+  .tab{background:#fff;border:2px solid var(--line);border-radius:999px;padding:9px 18px;font-size:16px;text-decoration:none;color:var(--ink);font-weight:700;font-family:inherit;cursor:pointer}
+  .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .joincard{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:30px;background:#F3EFFF;border-color:#DCD2FA}
+  .ops{display:flex;gap:8px;flex-wrap:wrap}
+  .op{background:#fff;border:2px solid var(--line);font-size:18px}
+  .op.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .num{width:110px;font-size:34px;font-weight:800;text-align:center;border:2px solid var(--line);border-radius:14px;padding:6px;font-family:inherit;color:var(--ink)}
+  .opsym{font-size:40px;font-weight:800;color:var(--brand);min-width:36px;text-align:center}
+  .eq{font-size:48px;font-weight:800;text-align:center;margin:4px 0 10px;letter-spacing:.04em}
+  .eq .r{color:var(--ok)} .eq .qm{color:var(--brand)}
+  .stepTxt{font-family:'Noto Naskh Arabic',serif;font-size:26px;font-weight:700;text-align:center;min-height:44px;margin:6px 0 12px}
+  .vis{display:flex;flex-wrap:wrap;gap:22px;justify-content:center;align-items:flex-end;min-height:80px;padding:10px;background:#FFFCF4;border-radius:16px}
+  .grpbox{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;max-width:100%;justify-content:center;direction:ltr}
+  .rod{display:flex;flex-direction:column-reverse;gap:2px;padding:2px;border-radius:5px;background:rgba(0,0,0,.06)}
+  .cell{width:22px;height:22px;border-radius:5px;position:relative;transition:opacity .3s,transform .3s}
+  .cell.x{opacity:.28}
+  .cell.x::after{content:"";position:absolute;inset:-2px;background:linear-gradient(45deg,transparent 44%,#D9534F 44%,#D9534F 56%,transparent 56%)}
+  .ca{background:#2F7DD1}.cb{background:#F2A93B}.cc{background:#2E9E5B}
+  .emo{font-size:30px;line-height:1;position:relative}
+  .emo.x{opacity:.3}
+  .emo.x::after{content:"✕";position:absolute;inset:0;color:#D9534F;font-size:34px;display:flex;align-items:center;justify-content:center}
+  .lbl{width:100%;text-align:center;font-weight:800;font-size:20px;margin-top:4px}
+  .arr{display:grid;gap:6px;direction:ltr}
+  .arr .dot{width:24px;height:24px;border-radius:50%;background:#2F7DD1;opacity:.15;transition:opacity .25s}
+  .arr .dot.on{opacity:1}
+  .rowlbl{font-weight:800;color:var(--muted);font-size:16px;align-self:center;padding-left:6px}
+  .plates{display:flex;flex-wrap:wrap;gap:14px;justify-content:center}
+  .plate{min-width:90px;min-height:90px;border-radius:50%;background:#fff;border:4px solid #EADFC8;display:flex;flex-wrap:wrap;gap:4px;align-content:center;justify-content:center;padding:14px;direction:ltr}
+  .plate .cell{width:16px;height:16px}
+  .plate .emo{font-size:20px}
+  .nl{width:100%;overflow-x:auto}
+  .nl svg{display:block;margin:0 auto}
+  .skip{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px;direction:ltr}
+  .skip span{background:#E9F2FC;border-radius:10px;padding:4px 10px;font-weight:800;font-size:20px;opacity:.2;transition:opacity .25s}
+  .skip span.on{opacity:1}
+  .mnav{display:flex;justify-content:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .ans{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+  .ans button{font-size:36px;min-width:110px;background:#fff;border:3px solid var(--line);border-radius:18px}
+  .ans button.right{border-color:var(--ok);background:var(--okbg)}
+  .ans button.wrong{border-color:var(--bad);background:var(--badbg)}
+  .story{font-family:'Noto Naskh Arabic',serif;font-size:22px;background:#FFF6DE;border-radius:14px;padding:12px 16px;margin-bottom:12px}
+
+  .sharebtn{display:inline-flex;align-items:center;gap:6px;background:#fff;border:2px solid var(--line);border-radius:999px;padding:7px 14px;font-size:15px;font-weight:800;color:var(--ink)}
+  .sharebtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .sharecard h2{display:flex;align-items:center;gap:8px}
+  .share{display:flex;flex-wrap:wrap;gap:8px}
+  .share a,.share button{display:inline-flex;align-items:center;gap:7px;height:42px;padding:0 14px 0 6px;border-radius:999px;border:2px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-size:15px;font-weight:700;text-decoration:none;cursor:pointer}
+  .share a:hover,.share button:hover{border-color:var(--brand)}
+  .share .ic{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px}
+  .share .ic svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .tip{font-size:14px;color:var(--muted);margin-top:10px;line-height:1.8}
+  .modal{position:fixed;inset:0;background:rgba(20,24,40,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+  .modal.show{display:flex}
+  .modal .box{background:#fff;border-radius:22px;padding:22px;max-width:560px;width:100%;max-height:90vh;overflow:auto;position:relative}
+  .modal .x{position:absolute;top:10px;left:10px;background:#F1ECE0;border-radius:50%;width:38px;height:38px;padding:0;font-size:18px}
+  .qr{display:flex;flex-direction:column;align-items:center;gap:6px;margin:14px 0}
+  .qr #qrBox{background:#fff;padding:10px;border-radius:14px;border:2px solid var(--line)}
+  .linkrow{display:flex;gap:8px;margin-top:6px}
+  .linkrow input{flex:1;min-width:0;border:2px solid var(--line);border-radius:12px;padding:8px 10px;font:inherit;font-size:13px;direction:ltr}
+
+  #langSel{font-family:inherit;font-size:14px;font-weight:700;border:2px solid var(--line);border-radius:999px;padding:7px 10px;background:#fff;color:var(--ink);cursor:pointer}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<header>
+  <div class="brandbox">
+    <h1>سبورة فتاح <span>لصعوبات التعلم</span></h1>
+    <div class="slogan">الذكاء الاصطناعي بالعربي · فتاح الراشد</div>
+    <div class="slogan" style="font-size:11px">لازم تفتح حساب مجاني في Claude عشان تستخدم ميزات الذكاء الاصطناعي</div>
+  </div>
+  <div class="hgrp">
+    <button class="sharebtn" id="shareOpen" title="مشاركة السبورة"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/></svg>مشاركة</button>
+    <a class="join" href="https://www.skool.com/income-generation-with-ai-6738" target="_blank" rel="noopener">🚀 انضم لغرفة الذكاء الاصطناعي</a>
+    <div class="stars">⭐ <span id="starCount">0</span></div>
+  </div>
+</header>
+<nav class="tabs">
+  <button class="tab on" data-tab="lesson">📖 حوّل الدرس</button>
+  <button class="tab" data-tab="math">🔢 الرياضيات المرئية</button>
+  <a class="tab" href="https://claude.ai/artifact/FAETnskvA4kBTVr4YNfu82" target="_blank" rel="noopener">🖍️ السبورة</a>
+</nav>
+
+<main>
+ <div id="tab-lesson">
+  <!-- SETUP -->
+  <section id="setup">
+    <div class="card">
+      <h2>١. حطّ الدرس</h2>
+      <p class="hint">الصق نص الدرس، أو صوّر صفحة الكتاب وارفعها.</p>
+      <div class="grid2">
+        <textarea id="src" placeholder="الصق نص الدرس هني..."></textarea>
+        <div>
+          <label class="upload" id="upBox">
+            📷 صورة صفحة الكتاب (اختياري)
+            <input type="file" id="img" accept="image/*" hidden>
+            <img id="imgPrev" alt="" hidden>
+          </label>
+          <p class="note" id="imgNote" hidden>رفع الصور مو متاح بهالعرض، الصق النص بداله.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>٢. عن الطالب</h2>
+      <div class="row" style="margin-bottom:12px">
+        <span>الصف:</span>
+        <select id="grade">
+          <option value="الأول الابتدائي">الأول</option>
+          <option value="الثاني الابتدائي">الثاني</option>
+          <option value="الثالث الابتدائي" selected>الثالث</option>
+          <option value="الرابع الابتدائي">الرابع</option>
+          <option value="الخامس الابتدائي">الخامس</option>
+          <option value="السادس الابتدائي">السادس</option>
+          <option value="المتوسط">المتوسط</option>
+        </select>
+      </div>
+      <div class="row">
+        <label class="chip"><input type="checkbox" name="d" value="عسر قراءة (ديسلكسيا)" checked> 📖 صعوبة قراءة</label>
+        <label class="chip"><input type="checkbox" name="d" value="تشتت انتباه" checked> 🎯 تشتت انتباه</label>
+        <label class="chip"><input type="checkbox" name="d" value="صعوبة في الحساب"> 🔢 صعوبة حساب</label>
+        <label class="chip"><input type="checkbox" name="d" value="بطء في الفهم ويحتاج أمثلة من الحياة اليومية"> 🐢 بطء تعلم</label>
+      </div>
+    </div>
+
+    <div class="row">
+      <button class="primary big" id="go">✨ حوّل الدرس</button>
+      <button class="ghost" id="demo">جرّب درس جاهز (دورة الماء)</button>
+    </div>
+    <div class="loading" id="loading"><div class="spin"></div><span id="loadTxt">قاعد أبسّط الدرس...</span></div>
+    <div id="preview" data-notr></div>
+    <div class="err" id="err"></div>
+  </section>
+
+  <!-- LESSON -->
+  <section id="lesson">
+    <div class="toolbar">
+      <div class="grp">
+        <button class="primary" id="play">🔊 اقرأ لي</button>
+        <button id="stop">⏹</button>
+        <select id="rate" title="السرعة">
+          <option value="0.6">🐢 بطيء</option>
+          <option value="0.8" selected>عادي</option>
+          <option value="1">🐇 أسرع</option>
+        </select>
+      </div>
+      <div class="grp">
+        <button id="fsDown" title="تصغير الخط">أ-</button>
+        <button id="fsUp" title="تكبير الخط">أ+</button>
+        <label class="chip"><input type="checkbox" id="colorize"> 🎨 لوّن الحروف المتشابهة</label>
+        <label class="chip"><input type="checkbox" id="focusMode"> 🔦 جملة وحدة</label>
+      </div>
+    </div>
+    <p class="note" id="voiceNote" hidden>ما لقيت صوت عربي بهالجهاز. جرّب كروم أو جهاز ثاني، أو نزّل صوت عربي من إعدادات الجهاز.</p>
+
+    <div class="progress" id="prog"></div>
+    <div class="card" id="stage"></div>
+    <div class="row" style="justify-content:space-between">
+      <button class="ghost" id="restart">↩ درس جديد</button>
+      <button class="ghost" id="copy">📋 نسخ النسخة المبسطة</button>
+    </div>
+  </section>
+ </div>
+
+ <!-- MATH -->
+ <div id="tab-math" hidden>
+  <div class="card">
+    <div class="ops" id="ops">
+      <button class="op on" data-op="+">➕ جمع</button>
+      <button class="op" data-op="-">➖ طرح</button>
+      <button class="op" data-op="x">✖️ ضرب</button>
+      <button class="op" data-op="/">➗ قسمة</button>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <input class="num" id="na" inputmode="numeric" value="7" aria-label="الرقم الأول">
+      <span class="opsym" id="opSym">+</span>
+      <input class="num" id="nb" inputmode="numeric" value="5" aria-label="الرقم الثاني">
+      <button class="primary big" id="explain">👣 اشرح خطوة خطوة</button>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <span>المستوى:</span>
+      <select id="lvl">
+        <option value="10">سهل (لين ١٠)</option>
+        <option value="20" selected>متوسط (لين ٢٠)</option>
+        <option value="100">صعب (لين ١٠٠)</option>
+      </select>
+      <button id="practice">🎲 سؤال تدريب</button>
+      <label class="chip"><input type="checkbox" id="arDigits" checked> ١٢٣ أرقام عربية</label>
+    </div>
+  </div>
+
+  <div class="card" id="mstage">
+    <p class="hint" style="margin:0">اختار العملية واكتب رقمين واضغط «اشرح خطوة خطوة»، أو جرّب «سؤال تدريب».</p>
+  </div>
+
+  <div class="card">
+    <h2>🧠 مسألة كلامية</h2>
+    <p class="hint">الصق مسألة من الكتاب، والذكاء الاصطناعي يحوّلها لصور وخطوات.</p>
+    <textarea id="wp" style="min-height:90px" placeholder="مثال: عند سارة ١٢ تفاحة، أعطت صديقتها ٥ تفاحات. كم تفاحة بقي معها؟"></textarea>
+    <div class="row" style="margin-top:10px"><button class="primary" id="wpGo">✨ حوّلها لصور</button></div>
+    <div class="loading" id="wpLoad"><div class="spin"></div><span>قاعد أفهم المسألة...</span></div>
+    <div class="err" id="wpErr"></div>
+  </div>
+ </div>
+
+ <div class="card sharecard"><h2><svg style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/></svg> اربط السبورة وشاركها</h2><div class="share"><a data-s="teams" target="_blank" rel="noopener"><span class="ic" style="background:#5B5FC7">T</span>Teams</a><a data-s="zoom" target="_blank" rel="noopener"><span class="ic" style="background:#2D8CFF"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="M15 11l6-3v8l-6-3"/></svg></span>Zoom</a><a data-s="meet" target="_blank" rel="noopener"><span class="ic" style="background:#00897B"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="M15 11l6-3v8l-6-3"/></svg></span>Google Meet</a><a data-s="classroom" target="_blank" rel="noopener"><span class="ic" style="background:#1E8E3E"><svg viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2 9 2 12 0v-5"/></svg></span>Classroom</a><a data-s="whatsapp" target="_blank" rel="noopener"><span class="ic" style="background:#25D366"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg></span>واتساب</a><a data-s="telegram" target="_blank" rel="noopener"><span class="ic" style="background:#229ED9"><svg viewBox="0 0 24 24"><path d="M21 3L3 11l7 3 3 7z"/><path d="M10 14l11-11"/></svg></span>تيليجرام</a><a data-s="x" target="_blank" rel="noopener"><span class="ic" style="background:#111">X</span>إكس</a><a data-s="email" target="_blank" rel="noopener"><span class="ic" style="background:#6B7280"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>إيميل</a><button type="button" data-s="copy"><span class="ic" style="background:#0E7C74"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 006 0l3-3a4 4 0 00-6-6l-1 1"/><path d="M14 10a4 4 0 00-6 0l-3 3a4 4 0 006 6l1-1"/></svg></span>نسخ الرابط</button><button type="button" data-s="qr"><span class="ic" style="background:#2B2B33"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M21 14v7h-7"/></svg></span>رمز QR</button></div><div class="tip">💡 <b>في Teams كتبويب ثابت:</b> افتحي القناة ← زر ＋ فوق ← «Website» ← الصقي رابط السبورة. وفي Zoom أو Meet: انسخي الرابط وحطيه بالشات، أو شاركي الشاشة.</div></div>
+
+ <div class="card joincard">
+   <div>
+     <b>تبي أدوات أكثر مثل هذي؟</b>
+     <div class="note">دروس يومية بالذكاء الاصطناعي للمعلمين والأهالي في غرفة الذكاء الاصطناعي AI ROOM.</div>
+   </div>
+   <a class="join" href="https://www.skool.com/income-generation-with-ai-6738" target="_blank" rel="noopener">🚀 انضم لغرفة الذكاء الاصطناعي</a>
+ </div>
+</main>
+<div class="modal" id="shareModal"><div class="box"><button class="x" id="shareClose">✕</button><h2>مشاركة سبورة فتاح لصعوبات التعلم</h2><div class="share"><a data-s="teams" target="_blank" rel="noopener"><span class="ic" style="background:#5B5FC7">T</span>Teams</a><a data-s="zoom" target="_blank" rel="noopener"><span class="ic" style="background:#2D8CFF"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="M15 11l6-3v8l-6-3"/></svg></span>Zoom</a><a data-s="meet" target="_blank" rel="noopener"><span class="ic" style="background:#00897B"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="M15 11l6-3v8l-6-3"/></svg></span>Google Meet</a><a data-s="classroom" target="_blank" rel="noopener"><span class="ic" style="background:#1E8E3E"><svg viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2 9 2 12 0v-5"/></svg></span>Classroom</a><a data-s="whatsapp" target="_blank" rel="noopener"><span class="ic" style="background:#25D366"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg></span>واتساب</a><a data-s="telegram" target="_blank" rel="noopener"><span class="ic" style="background:#229ED9"><svg viewBox="0 0 24 24"><path d="M21 3L3 11l7 3 3 7z"/><path d="M10 14l11-11"/></svg></span>تيليجرام</a><a data-s="x" target="_blank" rel="noopener"><span class="ic" style="background:#111">X</span>إكس</a><a data-s="email" target="_blank" rel="noopener"><span class="ic" style="background:#6B7280"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>إيميل</a><button type="button" data-s="copy"><span class="ic" style="background:#0E7C74"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 006 0l3-3a4 4 0 00-6-6l-1 1"/><path d="M14 10a4 4 0 00-6 0l-3 3a4 4 0 006 6l1-1"/></svg></span>نسخ الرابط</button><button type="button" data-s="qr"><span class="ic" style="background:#2B2B33"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M21 14v7h-7"/></svg></span>رمز QR</button></div><div class="qr"><div id="qrBox"></div><div class="note">الطالبات يصوّرن الرمز بالجوال ويفتحن السبورة</div></div><div class="linkrow"><input id="linkIn" readonly><button class="primary" data-s="copy">نسخ</button></div><div class="tip">💡 <b>في Teams كتبويب ثابت:</b> افتحي القناة ← زر ＋ فوق ← «Website» ← الصقي رابط السبورة. وفي Zoom أو Meet: انسخي الرابط وحطيه بالشات، أو شاركي الشاشة.</div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const DEMO = {
+    title: "دَورَةُ الماءِ",
+    chunks: [
+      { emoji:"🌊", heading:"الماءُ يَصعَدُ",
+        text:"الماءُ موجودٌ في **البِحارِ** والأنهارِ. الشَّمسُ تُسَخِّنُ الماءَ. الماءُ يَصيرُ **بُخارًا**. البُخارُ يَصعَدُ إلى السَّماءِ." },
+      { emoji:"☁️", heading:"الغُيومُ",
+        text:"البُخارُ يَبرُدُ في السَّماءِ. البُخارُ يَتَجَمَّعُ ويَصيرُ **غُيومًا**. الغُيومُ تَمشي معَ الرِّيحِ." },
+      { emoji:"🌧️", heading:"المَطَرُ",
+        text:"الغُيومُ تَثقُلُ بالماءِ. يَنزِلُ الماءُ **مَطَرًا** على الأرضِ. يَرجِعُ الماءُ إلى البَحرِ مَرَّةً أُخرى." }
+    ],
+    key_words: [
+      { word:"بُخار", meaning:"ماءٌ صَغيرٌ جِدًّا يَطيرُ في الهَواءِ", emoji:"♨️" },
+      { word:"غُيوم", meaning:"سَحابٌ أبيضُ في السَّماءِ", emoji:"☁️" }
+    ],
+    questions: [
+      { q:"ماذا تَفعَلُ الشَّمسُ بالماءِ؟", options:[{emoji:"🔥",text:"تُسَخِّنُهُ"},{emoji:"❄️",text:"تُجَمِّدُهُ"}], answer:0 },
+      { q:"ماذا يَصيرُ البُخارُ في السَّماءِ؟", options:[{emoji:"🪨",text:"حِجارَةً"},{emoji:"☁️",text:"غُيومًا"}], answer:1 },
+      { q:"مِن أينَ يَنزِلُ المَطَرُ؟", options:[{emoji:"☁️",text:"مِنَ الغُيومِ"},{emoji:"🌳",text:"مِنَ الشَّجَرِ"}], answer:0 }
+    ]
+  };
+
+  // ---------- storage (best effort) ----------
+  let stars = 0;
+  try { stars = parseInt(localStorage.getItem('hw_stars')||'0',10)||0; } catch(e){}
+  const setStars = n => { stars = n; $('starCount').textContent = n; try{localStorage.setItem('hw_stars', String(n));}catch(e){} };
+  setStars(stars);
+  let fs = 30;
+  try { fs = parseInt(localStorage.getItem('hw_fs')||'30',10)||30; } catch(e){}
+  const applyFs = () => { document.documentElement.style.setProperty('--fs', fs+'px'); try{localStorage.setItem('hw_fs',String(fs));}catch(e){} };
+  applyFs();
+
+  const toast = msg => { const t=$('toast'); t.textContent=msg; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',2200); };
+
+  // ---------- Claude ----------
+  let sample = null, imagesOk = false, imgBlob = null;
+  if (window.claude && claude.use) {
+    claude.use('sample').then(async s => {
+      sample = s;
+      if (!s) return;
+      try { const l = await s.limits(); imagesOk = !!(l && l.images); } catch(e){ imagesOk = false; }
+      if (!imagesOk) { $('imgNote').hidden = false; $('upBox').style.display='none'; }
+    });
+  }
+
+  $('img').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    imgBlob = f;
+    const im = $('imgPrev'); im.src = URL.createObjectURL(f); im.hidden = false;
+  });
+
+  const LANGNAME={en:'English',fr:'French',es:'Spanish',tr:'Turkish',ur:'Urdu',id:'Indonesian'};
+  const langRule = () => (window.I18N && I18N.lang!=='ar') ? `\n\nمهم جداً: اكتب كل الناتج (العنوان والنص والكلمات والمعاني والأسئلة والخيارات و story) باللغة ${LANGNAME[I18N.lang]} فقط، ولا تستخدم التشكيل.` : '';
+  function buildPrompt(text, grade, diffs, hasImage){
+    return `أنت معلّم تربية خاصة خبير. حوّل الدرس ${hasImage ? 'الموجود في الصورة المرفقة' : 'التالي'}${hasImage && text ? ' (مع النص المرفق)' : ''} إلى نسخة مكيّفة لطالب في الصف ${grade} عنده: ${diffs.join('، ') || 'صعوبات تعلم عامة'}.
+
+القواعد:
+- فصحى بسيطة جداً، وجمل قصيرة من 4 إلى 9 كلمات، كل جملة فكرة وحدة وتنتهي بنقطة.
+- تشكيل كامل لكل حرف في كل كلمة (العناوين والنص والأسئلة والخيارات والمعاني).
+- لا تحذف معلومة أساسية من الدرس، واحذف الحشو.
+- قسّم الدرس إلى 3 إلى 6 أجزاء، كل جزء من 2 إلى 4 جمل، وله عنوان قصير (كلمتان أو ثلاث) وإيموجي واحد يعبّر عنه.
+- ضع الكلمات الجديدة أو المهمة داخل النص بين ** ** (كلمة أو كلمتان في كل جزء كحد أقصى).
+- إذا كان في الدرس أرقام أو حساب، اكتب الأرقام بالأرقام واشرح الخطوات خطوة خطوة بمثال من الحياة اليومية.
+- key_words: من 2 إلى 5 كلمات صعبة، مع معنى بسيط جداً وإيموجي.
+- questions: 3 إلى 4 أسئلة فهم مباشرة، لكل سؤال خياران أو ثلاثة، لكل خيار إيموجي يوضّحه، و answer هو رقم الخيار الصحيح بدءاً من 0. نوّع مكان الإجابة الصحيحة.
+
+أخرج JSON فقط بهذا الشكل بالضبط بدون أي كلام آخر:
+{"title":"...","chunks":[{"emoji":"🌱","heading":"...","text":"..."}],"key_words":[{"word":"...","meaning":"...","emoji":"..."}],"questions":[{"q":"...","options":[{"emoji":"...","text":"..."}],"answer":0}]}
+${text ? '\nالدرس:\n"""\n' + text + '\n"""' : ''}${langRule()}`;
+  }
+
+  function valid(d){
+    return d && Array.isArray(d.chunks) && d.chunks.length && d.chunks.every(c => c && typeof c.text === 'string') &&
+      Array.isArray(d.questions);
+  }
+
+  let busy = false;
+  $('go').addEventListener('click', async () => {
+    if (busy) return;
+    const text = $('src').value.trim();
+    const useImg = imgBlob && imagesOk;
+    const err = $('err'); err.style.display='none';
+    if (!text && !useImg) { err.textContent = 'حطّ نص الدرس أو صورة الصفحة أول.'; err.style.display='block'; return; }
+    if (!sample) { err.innerHTML = 'تحويل الدرس يشتغل من نسخة Claude بس. <a href="https://claude.ai/artifact/2TAMr3FswV6MDYcsBcLdRA" target="_blank" rel="noopener" style="color:inherit;font-weight:800">افتح نسخة الذكاء الاصطناعي ←</a><br>أو جرّب الدرس الجاهز.'; err.style.display='block'; return; }
+    const diffs = [...document.querySelectorAll('input[name=d]:checked')].map(i=>i.value);
+    busy = true; $('go').disabled = true; $('loading').style.display='flex'; $('preview').textContent='';
+    try {
+      const prompt = buildPrompt(text, $('grade').value, diffs, useImg);
+      const opts = { modelTier:'default', onText: ({text}) => { $('preview').textContent = text.slice(-400); } };
+      if (useImg) opts.images = [imgBlob];
+      const data = await sample.json(prompt, opts);
+      if (!valid(data)) throw { message: 'الرد طلع ناقص، جرّب مرة ثانية.' };
+      start(data);
+    } catch(e) {
+      let msg = (e && e.message) || 'صار خطأ، جرّب مرة ثانية.';
+      if (e && e.code === 'not_granted') msg = 'لازم توافق على استخدام Claude بهالصفحة عشان يبسّط الدرس.';
+      if (e && e.code === 'rate_limited') msg = 'وايد طلبات ورا بعض، انطر شوي وجرّب.';
+      err.textContent = msg; err.style.display='block';
+    } finally {
+      busy = false; $('go').disabled = false; $('loading').style.display='none'; $('preview').textContent='';
+    }
+  });
+  $('demo').addEventListener('click', () => start(DEMO));
+
+  // ---------- lesson rendering ----------
+  let L = null, idx = 0, mode = 'chunk', qScore = 0;
+  let spokenText = '', wordSpans = [], sentSpans = [];
+
+  function start(data){
+    L = data; idx = 0; mode = 'chunk'; qScore = 0;
+    $('setup').style.display='none'; $('lesson').style.display='block';
+    window.scrollTo(0,0);
+    render();
+  }
+  $('restart').addEventListener('click', () => { stopSpeak(); $('lesson').style.display='none'; $('setup').style.display='block'; });
+
+  const total = () => L.chunks.length + (L.questions.length ? 1 : 0);
+  function renderProgress(){
+    const p = $('prog'); p.innerHTML='';
+    const cur = mode === 'chunk' ? idx : (mode === 'quiz' ? L.chunks.length : total());
+    for (let i=0;i<total();i++){ const b=document.createElement('i'); if(i<cur) b.className='done'; else if(i===cur) b.className='now'; p.appendChild(b); }
+  }
+
+  const HARAKAT = /[ً-ْٰـ]/;
+  const GROUPS = { 'ب':'c1','ت':'c2','ث':'c3','ج':'c1','ح':'c2','خ':'c3','د':'c1','ذ':'c2','ر':'c1','ز':'c2','س':'c1','ش':'c2','ص':'c1','ض':'c2','ط':'c1','ظ':'c2','ع':'c1','غ':'c2','ف':'c1','ق':'c2' };
+  function colorWord(w){
+    if (!$('colorize').checked) return esc(w);
+    let out='', i=0;
+    while(i<w.length){
+      const ch=w[i]; let j=i+1;
+      while(j<w.length && HARAKAT.test(w[j])) j++;
+      const seg=w.slice(i,j);
+      out += GROUPS[ch] ? `<span class="${GROUPS[ch]}">${esc(seg)}</span>` : esc(seg);
+      i=j;
+    }
+    return out;
+  }
+  const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  // Build text with word spans; returns spoken plain text
+  function buildText(el, raw){
+    el.innerHTML=''; wordSpans=[]; sentSpans=[];
+    const sentences = raw.replace(/\s+/g,' ').trim().match(/[^.!؟?،]+[.!؟?]*\s*/g) || [raw];
+    let plain='';
+    // merge comma splits back into sentences ending with . ! ؟
+    const merged=[]; let buf='';
+    sentences.forEach(s => { buf+=s; if (/[.!؟?]\s*$/.test(s)) { merged.push(buf); buf=''; } });
+    if (buf.trim()) merged.push(buf);
+    merged.forEach(s => {
+      const sEl=document.createElement('span'); sEl.className='sent';
+      const tokens = s.trim().split(' ');
+      let inKey=false;
+      tokens.forEach(tok => {
+        let t=tok, key=inKey;
+        if (t.startsWith('**')) { key=true; t=t.slice(2); if(!t.includes('**')) inKey=true; }
+        if (t.includes('**')) { key=true; t=t.replace(/\*\*/g,''); inKey=false; }
+        if (!t) return;
+        const w=document.createElement('span'); w.className='w'+(key?' key':'');
+        w.dataset.start=plain.length; w.dataset.end=plain.length+t.length;
+        w.innerHTML=colorWord(t);
+        w.addEventListener('click', ev => { ev.stopPropagation(); speak(t.replace(/[.،,!؟?:]/g,''), null); });
+        sEl.appendChild(w); sEl.appendChild(document.createTextNode(' '));
+        wordSpans.push({el:w, start:plain.length, end:plain.length+t.length, sent:sEl});
+        plain += t+' ';
+      });
+      sentSpans.push(sEl); el.appendChild(sEl);
+    });
+    if (sentSpans[0]) sentSpans[0].classList.add('cur');
+    return plain.trim();
+  }
+
+  let timerH=null;
+  function render(){
+    stopSpeak(); renderProgress();
+    const st=$('stage'); st.innerHTML='';
+    clearInterval(timerH);
+    if (mode==='chunk'){
+      const c=L.chunks[idx];
+      st.innerHTML = `<div class="chunk-head"><div class="emoji">${esc(c.emoji||'📘')}</div><div><div class="note"><span data-notr>${esc(L.title||'')}</span> · <span>الجزء ${idx+1} من ${L.chunks.length}</span></div><h3 class="chunk-title" data-notr>${esc(c.heading||'')}</h3></div></div><div class="text" id="txt" data-notr></div>`;
+      spokenText = (c.heading ? c.heading.replace(/\*\*/g,'')+'. ' : '');
+      const headLen = spokenText.length;
+      const body = buildText(st.querySelector('#txt'), c.text);
+      wordSpans.forEach(w => { w.start+=headLen; w.end+=headLen; });
+      spokenText += body;
+      const kws = (L.key_words||[]).filter(k => c.text.replace(/[ً-ْ]/g,'').includes(String(k.word||'').replace(/[ً-ْ]/g,'')));
+      if (kws.length){
+        const k=document.createElement('div'); k.className='keys';
+        k.innerHTML = '<div style="font-weight:800">🔑 كلمات جديدة</div>' + kws.map(x=>`<div data-notr>${esc(x.emoji||'')} <b>${esc(x.word)}</b>: ${esc(x.meaning||'')}</div>`).join('');
+        st.appendChild(k);
+      }
+      if ($('focusMode').checked) st.classList.add('focus'); else st.classList.remove('focus');
+      // short attention timer: ~3 min per chunk
+      const tm=document.createElement('div'); tm.className='timer'; tm.innerHTML='<i></i>'; st.appendChild(tm);
+      let sec=0; const max=180;
+      timerH=setInterval(()=>{ sec++; tm.firstChild.style.width=Math.min(100,sec/max*100)+'%'; if(sec>=max) clearInterval(timerH); },1000);
+      const nav=document.createElement('div'); nav.className='nav';
+      nav.innerHTML = `<button class="ghost" id="prev" ${idx===0?'disabled':''}>→ السابق</button><button class="primary big" id="next">خلصت ✓ ⭐</button>`;
+      st.appendChild(nav);
+      $('prev').onclick=()=>{ if(idx>0){idx--;render();} };
+      $('next').onclick=()=>{
+        setStars(stars+1); toast('⭐ أحسنت! نجمة جديدة');
+        if (idx < L.chunks.length-1) { idx++; render(); }
+        else if (L.questions.length) { mode='quiz'; qIdx=0; render(); }
+        else { mode='done'; render(); }
+      };
+    } else if (mode==='quiz'){
+      renderQuestion(st);
+    } else {
+      st.innerHTML = `<div class="center"><div class="bigstar">🏆</div><h2 style="font-size:28px">ممتاز! خلصت الدرس</h2><p class="text" style="font-size:24px">جاوبت ${qScore} من ${L.questions.length} صح</p><button class="primary big" id="again">اقرأ الدرس مرة ثانية</button></div>`;
+      spokenText = I18N.tr('مُمتاز! أَنهَيتَ الدَّرسَ.'); wordSpans=[];
+      $('again').onclick=()=>{ idx=0; mode='chunk'; qScore=0; render(); };
+    }
+  }
+
+  let qIdx=0;
+  function renderQuestion(st){
+    const q=L.questions[qIdx];
+    st.innerHTML = `<div class="note">سؤال ${qIdx+1} من ${L.questions.length}</div><div class="q" data-notr>${esc(q.q)}</div><div class="opts" id="opts"></div><div class="feedback center" id="fb"></div>`;
+    spokenText = q.q + ' ' + q.options.map(o=>o.text).join(I18N.tr('، أو ')+' ');
+    wordSpans=[];
+    let tried=false;
+    q.options.forEach((o,i)=>{
+      const b=document.createElement('button'); b.className='opt';
+      b.innerHTML=`<span class="e">${esc(o.emoji||'')}</span><span data-notr>${esc(o.text)}</span>`;
+      b.onclick=()=>{
+        if (b.classList.contains('right')) return;
+        if (i===Number(q.answer)){
+          b.classList.add('right');
+          if(!tried){ qScore++; setStars(stars+1); }
+          $('fb').innerHTML='<span style="color:var(--ok)">صح! 👏</span>';
+          speak(I18N.tr('أَحسَنتَ'), null);
+          setTimeout(()=>{ if(qIdx<L.questions.length-1){qIdx++; renderQuestion($('stage'));} else {mode='done'; render();} },1300);
+        } else {
+          tried=true; b.classList.add('wrong');
+          $('fb').innerHTML='<span style="color:var(--bad)">قرّبت! جرّب مرة ثانية 💪</span>';
+        }
+      };
+      $('opts').appendChild(b);
+    });
+    renderProgress();
+  }
+
+  // ---------- speech ----------
+  const synth = window.speechSynthesis;
+  let arVoice=null;
+  function pickVoice(){
+    if (!synth) return;
+    const vs=synth.getVoices();
+    const lc=(window.I18N&&I18N.lang)||'ar'; arVoice = lc==='ar' ? (vs.find(v=>/^ar[-_](KW|SA|AE)/i.test(v.lang)) || vs.find(v=>/^ar/i.test(v.lang)) || null) : (vs.find(v=>v.lang.toLowerCase().startsWith(lc)) || null);
+  }
+  if (synth){ pickVoice(); synth.onvoiceschanged=pickVoice; }
+
+  let fallbackH=null, gotBoundary=false;
+  function clearHl(){ wordSpans.forEach(w=>w.el.classList.remove('on')); }
+  function hlAt(ci){
+    let hit=null;
+    for (const w of wordSpans){ if (ci>=w.start && ci<w.end+1){ hit=w; break; } }
+    if (!hit) return;
+    clearHl(); hit.el.classList.add('on');
+    sentSpans.forEach(s=>s.classList.toggle('cur', s===hit.sent));
+  }
+  function stopSpeak(){
+    if (synth) synth.cancel();
+    clearInterval(fallbackH); clearHl();
+  }
+  function speak(text, onWords){
+    if (!synth){ toast('القراءة الصوتية مو مدعومة بهالمتصفح'); return; }
+    if (!arVoice){ pickVoice(); }
+    if (!arVoice) $('voiceNote').hidden=false;
+    stopSpeak();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang = arVoice ? arVoice.lang : ({ar:'ar-SA',en:'en-US',fr:'fr-FR',es:'es-ES',tr:'tr-TR',ur:'ur-PK',id:'id-ID'}[(window.I18N&&I18N.lang)||'ar']);
+    if (arVoice) u.voice=arVoice;
+    u.rate=parseFloat($('rate').value);
+    if (onWords){
+      gotBoundary=false;
+      u.onboundary = e => { if (e.name && e.name!=='word') return; gotBoundary=true; clearInterval(fallbackH); hlAt(e.charIndex); };
+      u.onstart = () => {
+        // fallback: estimate timing if the voice sends no word events
+        const t0=Date.now(); const msPerChar = 85 / u.rate;
+        setTimeout(()=>{
+          if (gotBoundary) return;
+          fallbackH=setInterval(()=>{ hlAt(Math.floor((Date.now()-t0)/msPerChar)); },120);
+        },350);
+      };
+      u.onend = () => { clearInterval(fallbackH); clearHl(); };
+    }
+    try { synth.speak(u); } catch(e){ toast('ما قدرت أشغّل الصوت'); }
+  }
+  $('play').addEventListener('click', ()=> speak(spokenText, true));
+  $('stop').addEventListener('click', stopSpeak);
+  $('fsUp').addEventListener('click', ()=>{ fs=Math.min(48,fs+3); applyFs(); });
+  $('fsDown').addEventListener('click', ()=>{ fs=Math.max(20,fs-3); applyFs(); });
+  $('colorize').addEventListener('change', ()=>{ if(mode==='chunk') render(); });
+  $('focusMode').addEventListener('change', ()=>{ $('stage').classList.toggle('focus', $('focusMode').checked); });
+
+  $('copy').addEventListener('click', async ()=>{
+    if (!L) return;
+    let t = (L.title||'') + '\n\n';
+    L.chunks.forEach((c,i)=>{ t += `${c.emoji||''} ${c.heading||''}\n${c.text.replace(/\*\*/g,'')}\n\n`; });
+    if ((L.key_words||[]).length){ t+=I18N.tr('🔑 كلمات جديدة')+'\n'; L.key_words.forEach(k=> t+=`${k.emoji||''} ${k.word}: ${k.meaning}\n`); t+='\n'; }
+    if (L.questions.length){ t+=I18N.tr('❓ أسئلة')+'\n'; L.questions.forEach((q,i)=>{ t+=`${i+1}. ${q.q}\n`; q.options.forEach(o=> t+=`   ${o.emoji||''} ${o.text}\n`); }); }
+    try { await navigator.clipboard.writeText(t); toast('انسخ ✓ الصقه في وورد واطبعه'); }
+    catch(e){ toast('ما قدرت أنسخ بهالمتصفح'); }
+  });
+
+  // ================= TABS =================
+  document.querySelectorAll('button.tab').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('button.tab').forEach(x => x.classList.toggle('on', x===b));
+    const t = b.dataset.tab;
+    $('tab-lesson').hidden = t!=='lesson';
+    $('tab-math').hidden = t!=='math';
+    stopSpeak();
+  }));
+
+  // ================= MATH =================
+  const AR = '٠١٢٣٤٥٦٧٨٩';
+  const fmt = n => $('arDigits').checked ? String(n).replace(/\d/g, d => AR[d]) : String(n);
+  const toNum = v => parseInt(String(v).replace(/[٠-٩]/g, d => AR.indexOf(d)).replace(/[^\d]/g,''),10);
+  const SYM = {'+':'+','-':'−','x':'×','/':'÷'};
+  const WORD = {'+':'زائد','-':'ناقص','x':'ضرب','/':'تقسيم'};
+  let op = '+';
+  let M = null; // current problem {a,b,op,emoji,story}
+  let mStep = 0;
+
+  document.querySelectorAll('.op').forEach(b => b.addEventListener('click', () => {
+    op = b.dataset.op;
+    document.querySelectorAll('.op').forEach(x => x.classList.toggle('on', x===b));
+    $('opSym').textContent = SYM[op];
+  }));
+  $('arDigits').addEventListener('change', () => { if (M) (M.practice ? renderPractice() : renderMath()); });
+
+  function result(p){
+    if (p.op==='+') return p.a+p.b;
+    if (p.op==='-') return p.a-p.b;
+    if (p.op==='x') return p.a*p.b;
+    return Math.floor(p.a/p.b);
+  }
+  function limits(p){
+    if (!(p.a>=0) || !(p.b>=0)) return 'اكتب رقمين صحيحين.';
+    if (p.op==='+' && p.a+p.b>100) return 'المجموع لازم يكون ١٠٠ أو أقل.';
+    if (p.op==='-' && (p.b>p.a || p.a>100)) return 'بالطرح: الرقم الأول لازم يكون أكبر، ولين ١٠٠.';
+    if (p.op==='x' && (p.a>12 || p.b>12)) return 'بالضرب: الأرقام لين ١٢.';
+    if (p.op==='/' && (p.b<1 || p.b>10 || p.a>60)) return 'بالقسمة: الأول لين ٦٠ والثاني من ١ لين ١٠.';
+    return '';
+  }
+
+  $('explain').addEventListener('click', () => {
+    const p = {a:toNum($('na').value), b:toNum($('nb').value), op};
+    const e = limits(p);
+    if (e) { $('mstage').innerHTML = `<div class="err" style="display:block">${e}</div>`; return; }
+    M = p; mStep = 0; renderMath();
+  });
+
+  // blocks: rods of 10 + ones. crossFrom = index from which cells are crossed
+  function blocks(n, cls, cross=0, emoji){
+    const box = document.createElement('div'); box.className='grpbox';
+    if (emoji && n<=30){
+      for (let i=0;i<n;i++){ const e=document.createElement('span'); e.className='emo'+(i>=n-cross?' x':''); e.textContent=emoji; box.appendChild(e); }
+      return box;
+    }
+    const tens = Math.floor(n/10), ones = n%10; let idx=0;
+    for (let t=0;t<tens;t++){
+      const r=document.createElement('div'); r.className='rod';
+      for (let k=0;k<10;k++){ const c=document.createElement('div'); c.className='cell '+cls+(idx>=n-cross?' x':''); idx++; r.appendChild(c); }
+      box.appendChild(r);
+    }
+    for (let k=0;k<ones;k++){ const c=document.createElement('div'); c.className='cell '+cls+(idx>=n-cross?' x':''); idx++; box.appendChild(c); }
+    return box;
+  }
+  function wrapLbl(el, txt){ const d=document.createElement('div'); d.style.cssText='display:flex;flex-direction:column;align-items:center'; d.appendChild(el); const l=document.createElement('div'); l.className='lbl'; l.textContent=txt; d.appendChild(l); return d; }
+
+  // number line SVG with jumps (dir +1/-1)
+  function numberLine(start, delta){
+    const end = start+delta, lo=Math.min(start,end), hi=Math.max(start,end);
+    const small = hi<=20;
+    const from = small ? 0 : Math.max(0, lo - (lo%10)), to = small ? Math.max(hi+1,10) : hi + (10 - hi%10)%10;
+    const W = Math.max(560, Math.min(900, (to-from)*(small?40:8)+60)), pad=30, H=130, y=95;
+    const X = v => pad + (v-from)/(to-from)*(W-2*pad);
+    let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="direction:ltr">`;
+    s += `<line x1="${pad-10}" y1="${y}" x2="${W-pad+10}" y2="${y}" stroke="#2B2B33" stroke-width="3"/>`;
+    for (let v=from; v<=to; v++){
+      const major = small || v%10===0 || v===start || v===end;
+      if (!major) continue;
+      s += `<line x1="${X(v)}" y1="${y-8}" x2="${X(v)}" y2="${y+8}" stroke="#2B2B33" stroke-width="2"/>`;
+      const em = (v===start||v===end);
+      s += `<text x="${X(v)}" y="${y+28}" text-anchor="middle" font-size="${em?20:15}" font-weight="${em?800:500}" fill="${v===end?'#2E9E5B':(v===start?'#2F7DD1':'#555')}" font-family="Tajawal">${fmt(v)}</text>`;
+    }
+    // jumps: if small, unit jumps; else tens then ones
+    const jumps=[]; let cur=start, rem=Math.abs(delta), dir=Math.sign(delta)||1;
+    if (small){ while(rem>0){ jumps.push([cur,cur+dir]); cur+=dir; rem--; } }
+    else { while(rem>=10){ jumps.push([cur,cur+10*dir]); cur+=10*dir; rem-=10; } if(rem>0) jumps.push([cur,cur+rem*dir]); }
+    jumps.forEach(([a,b],i) => {
+      const x1=X(a), x2=X(b), mid=(x1+x2)/2, h=Math.min(55, 18+Math.abs(x2-x1)*.35);
+      s += `<path d="M${x1},${y-6} Q${mid},${y-6-h*2} ${x2},${y-6}" fill="none" stroke="${dir>0?'#F2A93B':'#D9534F'}" stroke-width="3" opacity="0" style="animation:fadeIn .3s ${i*0.25}s forwards"/>`;
+      s += `<polygon points="${x2},${y-6} ${x2-6*dir},${y-16} ${x2+4*dir},${y-15}" fill="${dir>0?'#F2A93B':'#D9534F'}" opacity="0" style="animation:fadeIn .3s ${i*0.25}s forwards"/>`;
+    });
+    s += `<style>@keyframes fadeIn{to{opacity:1}}</style></svg>`;
+    const d=document.createElement('div'); d.className='nl'; d.innerHTML=s; return d;
+  }
+
+  function stepsFor(p){
+    const a=fmt(p.a), b=fmt(p.b), r=fmt(result(p));
+    if (p.op==='+') return [`عندنا ${a}`, `نضيف ${b}`, `نعدّ الكل: ${a} + ${b} = ${r}`];
+    if (p.op==='-') return [`عندنا ${a}`, `نشيل ${b}`, `الباقي: ${a} − ${b} = ${r}`];
+    if (p.op==='x') return [`${a} صفوف`, `في كل صف ${b}`, `نعدّ بالقفز: ${a} × ${b} = ${r}`];
+    const rest = p.a % p.b;
+    return [`عندنا ${a}`, `نوزّعها على ${b} صحون بالتساوي`, `في كل صحن ${r}` + (rest ? `، ويبقى ${fmt(rest)}` : '')];
+  }
+  const sayStep = t => I18N.tr(t).replace(/[٠-٩]/g, d => AR.indexOf(d)).replace(/\+/g,' '+I18N.tr('زائد')+' ').replace(/−/g,' '+I18N.tr('ناقص')+' ').replace(/×/g,' '+I18N.tr('ضرب')+' ').replace(/=/g,' '+I18N.tr('يساوي')+' ');
+
+  function renderMath(){
+    stopSpeak();
+    const p=M, st=$('mstage'), steps=stepsFor(p), r=result(p);
+    st.innerHTML='';
+    if (p.story){ const sd=document.createElement('div'); sd.className='story'; sd.setAttribute('data-notr',''); sd.textContent=p.story; st.appendChild(sd); }
+    const eq=document.createElement('div'); eq.className='eq';
+    eq.innerHTML = `${fmt(p.a)} ${SYM[p.op]} ${fmt(p.b)} = <span class="${mStep>=2?'r':'qm'}">${mStep>=2?fmt(r):'؟'}</span>`;
+    st.appendChild(eq);
+    const tx=document.createElement('div'); tx.className='stepTxt'; tx.textContent=steps[mStep]; st.appendChild(tx);
+    const vis=document.createElement('div'); vis.className='vis'; st.appendChild(vis);
+
+    if (p.op==='+'){
+      vis.appendChild(wrapLbl(blocks(p.a,'ca',0,p.emoji), fmt(p.a)));
+      if (mStep>=1) vis.appendChild(wrapLbl(blocks(p.b,'cb',0,p.emoji), '+ '+fmt(p.b)));
+      if (mStep>=2) vis.appendChild(numberLine(p.a, p.b));
+    } else if (p.op==='-'){
+      vis.appendChild(wrapLbl(blocks(p.a,'ca', mStep>=1?p.b:0, p.emoji), mStep>=1 ? `${fmt(p.a)} − ${fmt(p.b)}` : fmt(p.a)));
+      if (mStep>=2) vis.appendChild(numberLine(p.a, -p.b));
+    } else if (p.op==='x'){
+      const g=document.createElement('div'); g.className='arr';
+      g.style.gridTemplateColumns = `auto repeat(${p.b}, 24px)`;
+      for (let i=0;i<p.a;i++){
+        const lb=document.createElement('div'); lb.className='rowlbl'; lb.textContent = mStep>=2 ? fmt(p.b*(i+1)) : ''; g.appendChild(lb);
+        for (let j=0;j<p.b;j++){ const d=document.createElement('div'); d.className='dot'+((mStep>=1 || j===0)?' on':''); if(p.emoji){d.className=''; d.style.cssText='font-size:20px;line-height:24px;text-align:center;opacity:'+((mStep>=1||j===0)?1:.15); d.textContent=p.emoji;} g.appendChild(d); }
+      }
+      vis.appendChild(g);
+      if (mStep>=2){
+        const sk=document.createElement('div'); sk.className='skip';
+        for (let i=1;i<=p.a;i++){ const s=document.createElement('span'); s.textContent=fmt(p.b*i); sk.appendChild(s); setTimeout(()=>s.classList.add('on'), i*350); }
+        vis.appendChild(sk);
+      }
+    } else {
+      if (mStep===0) vis.appendChild(wrapLbl(blocks(p.a,'ca',0,p.emoji), fmt(p.a)));
+      else {
+        const q=Math.floor(p.a/p.b), rest=p.a%p.b;
+        const pl=document.createElement('div'); pl.className='plates';
+        for (let i=0;i<p.b;i++){
+          const d=document.createElement('div'); d.className='plate';
+          for (let k=0;k<q;k++){
+            const c = p.emoji ? Object.assign(document.createElement('span'),{className:'emo',textContent:p.emoji}) : Object.assign(document.createElement('div'),{className:'cell ca'});
+            c.style.opacity='0'; c.style.transition='opacity .25s'; setTimeout(()=>c.style.opacity='1', (k*p.b+i)*120);
+            d.appendChild(c);
+          }
+          pl.appendChild(d);
+        }
+        vis.appendChild(pl);
+        if (rest) vis.appendChild(wrapLbl(blocks(rest,'cb',0,p.emoji), 'الباقي '+fmt(rest)));
+      }
+    }
+
+    const nav=document.createElement('div'); nav.className='mnav';
+    nav.innerHTML = `<button id="mSay">🔊 اسمع</button>` +
+      (mStep>0 ? `<button class="ghost" id="mBack">→ رجوع</button>` : '') +
+      (mStep<2 ? `<button class="primary big" id="mNext">الخطوة التالية ←</button>` : `<button class="primary big" id="mTry">🎲 جرّب سؤال مثله</button>`);
+    st.appendChild(nav);
+    $('mSay').onclick = () => speak(sayStep(steps[mStep]), null);
+    if ($('mBack')) $('mBack').onclick = () => { mStep--; renderMath(); };
+    if ($('mNext')) $('mNext').onclick = () => { mStep++; renderMath(); speak(sayStep(stepsFor(M)[mStep]), null); };
+    if ($('mTry')) $('mTry').onclick = () => { op=M.op; newPractice(); };
+  }
+
+  const rnd = (lo,hi) => lo + Math.floor(Math.random()*(hi-lo+1));
+  function newPractice(){
+    const L=parseInt($('lvl').value,10); let p;
+    if (op==='+'){ const a=rnd(1,L-1); p={a, b:rnd(1,L-a)}; }
+    else if (op==='-'){ const a=rnd(2,L); p={a, b:rnd(1,a)}; }
+    else if (op==='x'){ const m = L<=10?5:(L<=20?10:12); p={a:rnd(1,m), b:rnd(1,m)}; }
+    else { const m = L<=10?5:(L<=20?6:10); const b=rnd(1,m), q=rnd(1,m); p={a:b*q, b}; }
+    p.op=op; p.practice=true; M=p; renderPractice();
+  }
+  $('practice').addEventListener('click', newPractice);
+
+  function renderPractice(){
+    stopSpeak();
+    const p=M, r=result(p), st=$('mstage');
+    const opts=new Set([r]);
+    let guard=0;
+    while(opts.size<3 && guard++<50){ const d=r+rnd(-3,3); if(d>=0) opts.add(d); }
+    const arr=[...opts].sort(()=>Math.random()-.5);
+    st.innerHTML = `<div class="note center">سؤال تدريب</div><div class="eq">${fmt(p.a)} ${SYM[p.op]} ${fmt(p.b)} = <span class="qm">؟</span></div><div class="ans" id="ans"></div><div class="feedback center" id="mfb"></div><div class="mnav"><button id="mSay2">🔊 اسمع السؤال</button><button class="ghost" id="mShow">👣 ورني الطريقة</button><button id="mNew">🎲 سؤال ثاني</button></div>`;
+    let tried=false;
+    arr.forEach(v=>{
+      const b=document.createElement('button'); b.textContent=fmt(v);
+      b.onclick=()=>{
+        if (v===r){ b.classList.add('right'); if(!tried) setStars(stars+1); $('mfb').innerHTML='<span style="color:var(--ok)">صح! 👏 ⭐</span>'; speak(I18N.tr('أَحسَنتَ'), null); setTimeout(newPractice,1400); }
+        else { tried=true; b.classList.add('wrong'); $('mfb').innerHTML='<span style="color:var(--bad)">قرّبت! جرّب مرة ثانية، أو اضغط «ورني الطريقة» 💪</span>'; }
+      };
+      $('ans').appendChild(b);
+    });
+    $('mSay2').onclick=()=>speak(I18N.tr(`${p.a} ${WORD[p.op]} ${p.b} يساوي كم؟`), null);
+    $('mShow').onclick=()=>{ M={a:p.a,b:p.b,op:p.op}; mStep=0; renderMath(); };
+    $('mNew').onclick=newPractice;
+  }
+
+  // word problem via Claude
+  $('wpGo').addEventListener('click', async () => {
+    const txt=$('wp').value.trim(), err=$('wpErr'); err.style.display='none';
+    if (!txt){ err.textContent='الصق المسألة أول.'; err.style.display='block'; return; }
+    if (!sample){ err.innerHTML='تحويل المسائل يشتغل من نسخة Claude بس. <a href="https://claude.ai/artifact/2TAMr3FswV6MDYcsBcLdRA" target="_blank" rel="noopener" style="color:inherit;font-weight:800">افتح نسخة الذكاء الاصطناعي ←</a>'; err.style.display='block'; return; }
+    $('wpGo').disabled=true; $('wpLoad').style.display='flex';
+    try{
+      const d = await sample.json(`أنت معلّم رياضيات لطلاب عندهم صعوبات تعلم. حلّل هذه المسألة الكلامية وأخرج JSON فقط بالشكل:
+{"a":رقم,"b":رقم,"op":"+" أو "-" أو "x" أو "/","emoji":"إيموجي واحد يمثّل الأشياء في المسألة","story":"إعادة صياغة المسألة بجملتين قصيرتين جداً بفصحى بسيطة ومشكّلة"}
+- a هو الرقم الأول في العملية و b الثاني، بحيث العملية a op b تعطي الجواب.
+- إذا كانت المسألة تحتاج أكثر من عملية، اختر العملية الأولى فقط.
+المسألة: """${txt}"""${langRule()}`, {modelTier:'quick'});
+      const p={a:toNum(d.a), b:toNum(d.b), op:d.op, emoji:d.emoji, story:d.story};
+      if (!SYM[p.op]) throw {message:'ما قدرت أفهم العملية، جرّب تكتبها أوضح.'};
+      const e=limits(p); if (e) throw {message:'الأرقام كبيرة على الرسم: '+e};
+      M=p; mStep=0; op=p.op;
+      document.querySelectorAll('.op').forEach(x=>x.classList.toggle('on', x.dataset.op===op)); $('opSym').textContent=SYM[op];
+      $('na').value=p.a; $('nb').value=p.b;
+      renderMath(); $('mstage').scrollIntoView({behavior:'smooth',block:'start'});
+    } catch(e){
+      let msg=(e&&e.message)||'صار خطأ، جرّب مرة ثانية.';
+      if (e&&e.code==='not_granted') msg='لازم توافق على استخدام Claude بهالصفحة.';
+      if (e&&e.code==='rate_limited') msg='وايد طلبات ورا بعض، انطر شوي.';
+      err.textContent=msg; err.style.display='block';
+    } finally { $('wpGo').disabled=false; $('wpLoad').style.display='none'; }
+  });
+
+
+  // ================= SHARE =================
+  const URLX='https://ftaa7alrashid.com/sabboura-ld/';
+  const TXT='سبورة فتاح لصعوبات التعلم — أداة مجانية تبسّط الدروس وتشرح الرياضيات بالصور';
+  const E=encodeURIComponent;
+  const LINKS={teams:'https://teams.microsoft.com/share?href='+E(URLX)+'&msgText='+E(TXT),
+    zoom:'https://app.zoom.us/wc',meet:'https://meet.google.com/new',
+    classroom:'https://classroom.google.com/share?url='+E(URLX)+'&title='+E(TXT),
+    whatsapp:'https://wa.me/?text='+E(TXT+'\n'+URLX),telegram:'https://t.me/share/url?url='+E(URLX)+'&text='+E(TXT),
+    x:'https://x.com/intent/post?text='+E(TXT)+'&url='+E(URLX),
+    email:'mailto:?subject='+E(TXT)+'&body='+E(TXT+'\n'+URLX)};
+  const COPYFIRST={zoom:'نسخت الرابط ✓ الصقيه بشات زوم',meet:'نسخت الرابط ✓ الصقيه بشات الاجتماع'};
+  async function copyLink(){try{await navigator.clipboard.writeText(URLX);return true;}catch(e){try{const t=document.createElement('textarea');t.value=URLX;document.body.appendChild(t);t.select();const ok=document.execCommand('copy');t.remove();return ok;}catch(_){return false;}}}
+  document.querySelectorAll('.share a[data-s]').forEach(a=>{const k=a.dataset.s;a.href=LINKS[k];if(k==='email')a.removeAttribute('target');
+    a.addEventListener('click',()=>{if(COPYFIRST[k]) copyLink().then(ok=>toast(ok?COPYFIRST[k]:URLX));});});
+  document.querySelectorAll('[data-s="copy"]').forEach(b=>b.addEventListener('click',async()=>toast(await copyLink()?'نسخت رابط السبورة ✓':URLX)));
+  let qrDone=false;
+  function openShare(){ $('shareModal').classList.add('show'); $('linkIn').value=URLX;
+    if(!qrDone && window.QRCode){ try{ new QRCode($('qrBox'),{text:URLX,width:180,height:180}); qrDone=true; }catch(e){} }
+    if(!window.QRCode) document.querySelector('.qr').style.display='none'; }
+  $('shareOpen').addEventListener('click',openShare);
+  document.querySelectorAll('[data-s="qr"]').forEach(b=>b.addEventListener('click',openShare));
+  $('shareClose').addEventListener('click',()=>$('shareModal').classList.remove('show'));
+  $('shareModal').addEventListener('click',e=>{if(e.target.id==='shareModal')$('shareModal').classList.remove('show');});
+
+  window.addEventListener('langchange', () => {
+    pickVoice(); $('voiceNote').hidden = true;
+    const ar = I18N.lang==='ar'; if ($('arDigits').checked !== ar) { $('arDigits').checked = ar; if (M) (M.practice ? renderPractice() : renderMath()); }
+  });
+})();
+</script>
+<script>
+window.__I18N_D={"واتساب": ["WhatsApp", "WhatsApp", "WhatsApp", "WhatsApp", "واٹس ایپ", "WhatsApp"], "تيليجرام": ["Telegram", "Telegram", "Telegram", "Telegram", "ٹیلیگرام", "Telegram"], "إيميل": ["Email", "E-mail", "Correo", "E-posta", "ای میل", "Email"], "إكس": ["X", "X", "X", "X", "ایکس", "X"], "نسخ الرابط": ["Copy link", "Copier le lien", "Copiar enlace", "Bağlantıyı kopyala", "لنک کاپی کریں", "Salin tautan"], "مشاركة": ["Share", "Partager", "Compartir", "Paylaş", "شیئر", "Bagikan"], "رمز QR": ["QR code", "Code QR", "Código QR", "QR kodu", "QR کوڈ", "Kode QR"], "نسخ": ["Copy", "Copier", "Copiar", "Kopyala", "کاپی", "Salin"], "🚀 انضم لغرفة الذكاء الاصطناعي": ["🚀 Join the AI ROOM", "🚀 Rejoindre AI ROOM", "🚀 Únete a AI ROOM", "🚀 AI ROOM’a katıl", "🚀 AI ROOM میں شامل ہوں", "🚀 Gabung AI ROOM"], "🧩 سبورة فتاح لصعوبات التعلم": ["🧩 Fattah Board for Learning Difficulties", "🧩 Tableau Fattah – difficultés d’apprentissage", "🧩 Pizarra Fattah para dificultades de aprendizaje", "🧩 Öğrenme Güçlükleri için Fattah Tahtası", "🧩 فتاح بورڈ برائے تعلیمی مشکلات", "🧩 Papan Fattah untuk Kesulitan Belajar"], "تحتاج حساب Claude مجاني": ["Needs a free Claude account", "Nécessite un compte Claude gratuit", "Requiere una cuenta gratuita de Claude", "Ücretsiz Claude hesabı gerekir", "مفت Claude اکاؤنٹ درکار ہے", "Perlu akun Claude gratis"], "سبورة فتاح لصعوبات التعلم": ["Fattah Board for Learning Difficulties", "Tableau Fattah – difficultés d’apprentissage", "Pizarra Fattah para dificultades de aprendizaje", "Öğrenme Güçlükleri için Fattah Tahtası", "فتاح بورڈ برائے تعلیمی مشکلات", "Papan Fattah untuk Kesulitan Belajar"], "سبورة فتاح": ["Fattah Board", "Tableau Fattah", "Pizarra Fattah", "Fattah Tahtası", "فتاح بورڈ", "Papan Fattah"], "لصعوبات التعلم": ["for Learning Difficulties", "– difficultés d’apprentissage", "para dificultades de aprendizaje", "· Öğrenme Güçlükleri", "برائے تعلیمی مشکلات", "untuk Kesulitan Belajar"], "لازم تفتح حساب مجاني في Claude عشان تستخدم ميزات الذكاء الاصطناعي": ["A free Claude account is needed for the AI features", "Un compte Claude gratuit est nécessaire pour les fonctions IA", "Se necesita una cuenta gratuita de Claude para las funciones de IA", "Yapay zekâ özellikleri için ücretsiz Claude hesabı gerekir", "AI فیچرز کے لیے مفت Claude اکاؤنٹ ضروری ہے", "Fitur AI memerlukan akun Claude gratis"], "مشاركة السبورة": ["Share the board", "Partager le tableau", "Compartir la pizarra", "Tahtayı paylaş", "بورڈ شیئر کریں", "Bagikan papan"], "📖 حوّل الدرس": ["📖 Adapt a lesson", "📖 Adapter une leçon", "📖 Adaptar una lección", "📖 Dersi uyarla", "📖 سبق آسان بنائیں", "📖 Sesuaikan pelajaran"], "🔢 الرياضيات المرئية": ["🔢 Visual math", "🔢 Maths visuelles", "🔢 Matemáticas visuales", "🔢 Görsel matematik", "🔢 بصری ریاضی", "🔢 Matematika visual"], "🖍️ السبورة": ["🖍️ Whiteboard", "🖍️ Tableau", "🖍️ Pizarra", "🖍️ Tahta", "🖍️ وائٹ بورڈ", "🖍️ Papan tulis"], "١. حطّ الدرس": ["1. Add the lesson", "1. Ajoutez la leçon", "1. Añade la lección", "1. Dersi ekleyin", "1. سبق شامل کریں", "1. Masukkan pelajaran"], "الصق نص الدرس، أو صوّر صفحة الكتاب وارفعها.": ["Paste the lesson text, or take a photo of the textbook page and upload it.", "Collez le texte de la leçon ou photographiez la page du manuel.", "Pega el texto de la lección o sube una foto de la página del libro.", "Ders metnini yapıştırın ya da kitap sayfasının fotoğrafını yükleyin.", "سبق کا متن پیسٹ کریں یا کتاب کے صفحے کی تصویر اپ لوڈ کریں۔", "Tempel teks pelajaran, atau foto halaman buku lalu unggah."], "الصق نص الدرس هني...": ["Paste the lesson text here...", "Collez le texte ici...", "Pega aquí el texto...", "Ders metnini buraya yapıştırın...", "سبق کا متن یہاں پیسٹ کریں...", "Tempel teks pelajaran di sini..."], "📷 صورة صفحة الكتاب (اختياري)": ["📷 Photo of the textbook page (optional)", "📷 Photo de la page du manuel (facultatif)", "📷 Foto de la página del libro (opcional)", "📷 Kitap sayfasının fotoğrafı (isteğe bağlı)", "📷 کتاب کے صفحے کی تصویر (اختیاری)", "📷 Foto halaman buku (opsional)"], "رفع الصور مو متاح بهالعرض، الصق النص بداله.": ["Image upload isn’t available in this view, paste the text instead.", "L’envoi d’images n’est pas disponible ici, collez le texte.", "La subida de imágenes no está disponible aquí, pega el texto.", "Bu görünümde resim yükleme yok, metni yapıştırın.", "اس ویو میں تصویر اپ لوڈ دستیاب نہیں، متن پیسٹ کریں۔", "Unggah gambar tidak tersedia di sini, tempel teksnya."], "٢. عن الطالب": ["2. About the student", "2. L’élève", "2. Sobre el alumno", "2. Öğrenci hakkında", "2. طالب علم کے بارے میں", "2. Tentang siswa"], "الصف:": ["Grade:", "Classe :", "Curso:", "Sınıf:", "جماعت:", "Kelas:"], "الأول": ["Grade 1", "CP", "1.º", "1. sınıf", "پہلی", "Kelas 1"], "الثاني": ["Grade 2", "CE1", "2.º", "2. sınıf", "دوسری", "Kelas 2"], "الثالث": ["Grade 3", "CE2", "3.º", "3. sınıf", "تیسری", "Kelas 3"], "الرابع": ["Grade 4", "CM1", "4.º", "4. sınıf", "چوتھی", "Kelas 4"], "الخامس": ["Grade 5", "CM2", "5.º", "5. sınıf", "پانچویں", "Kelas 5"], "السادس": ["Grade 6", "6e", "6.º", "6. sınıf", "چھٹی", "Kelas 6"], "المتوسط": ["Middle school", "Collège", "Secundaria", "Ortaokul", "مڈل اسکول", "SMP"], "📖 صعوبة قراءة": ["📖 Reading difficulty", "📖 Difficulté de lecture", "📖 Dificultad lectora", "📖 Okuma güçlüğü", "📖 پڑھنے میں دشواری", "📖 Kesulitan membaca"], "🎯 تشتت انتباه": ["🎯 Attention difficulty", "🎯 Trouble de l’attention", "🎯 Déficit de atención", "🎯 Dikkat dağınıklığı", "🎯 توجہ کی کمی", "🎯 Sulit fokus"], "🔢 صعوبة حساب": ["🔢 Math difficulty", "🔢 Difficulté en calcul", "🔢 Dificultad en cálculo", "🔢 Matematik güçlüğü", "🔢 حساب میں دشواری", "🔢 Kesulitan berhitung"], "🐢 بطء تعلم": ["🐢 Slow learner", "🐢 Apprentissage lent", "🐢 Aprendizaje lento", "🐢 Yavaş öğrenme", "🐢 سست سیکھنا", "🐢 Lambat belajar"], "✨ حوّل الدرس": ["✨ Adapt the lesson", "✨ Adapter la leçon", "✨ Adaptar la lección", "✨ Dersi uyarla", "✨ سبق آسان بنائیں", "✨ Sesuaikan pelajaran"], "جرّب درس جاهز (دورة الماء)": ["Try a sample lesson (Arabic)", "Essayer une leçon d’exemple (arabe)", "Probar una lección de ejemplo (árabe)", "Örnek ders dene (Arapça)", "نمونہ سبق آزمائیں (عربی)", "Coba contoh pelajaran (Arab)"], "قاعد أبسّط الدرس...": ["Simplifying the lesson...", "Simplification de la leçon...", "Simplificando la lección...", "Ders sadeleştiriliyor...", "سبق آسان بنایا جا رہا ہے...", "Menyederhanakan pelajaran..."], "🔊 اقرأ لي": ["🔊 Read to me", "🔊 Lis-moi", "🔊 Léeme", "🔊 Bana oku", "🔊 مجھے پڑھ کر سنائیں", "🔊 Bacakan"], "🐢 بطيء": ["🐢 Slow", "🐢 Lent", "🐢 Lento", "🐢 Yavaş", "🐢 آہستہ", "🐢 Lambat"], "عادي": ["Normal", "Normal", "Normal", "Normal", "عام", "Normal"], "🐇 أسرع": ["🐇 Faster", "🐇 Plus vite", "🐇 Más rápido", "🐇 Hızlı", "🐇 تیز", "🐇 Cepat"], "السرعة": ["Speed", "Vitesse", "Velocidad", "Hız", "رفتار", "Kecepatan"], "تصغير الخط": ["Smaller text", "Texte plus petit", "Texto más pequeño", "Yazıyı küçült", "فونٹ چھوٹا", "Perkecil teks"], "تكبير الخط": ["Bigger text", "Texte plus grand", "Texto más grande", "Yazıyı büyüt", "فونٹ بڑا", "Perbesar teks"], "أ-": ["A-", "A-", "A-", "A-", "ا-", "A-"], "أ+": ["A+", "A+", "A+", "A+", "ا+", "A+"], "🎨 لوّن الحروف المتشابهة": ["🎨 Color similar letters", "🎨 Colorer les lettres proches", "🎨 Colorear letras parecidas", "🎨 Benzer harfleri renklendir", "🎨 ملتے جلتے حروف رنگیں", "🎨 Warnai huruf mirip"], "🔦 جملة وحدة": ["🔦 One sentence", "🔦 Une phrase", "🔦 Una frase", "🔦 Tek cümle", "🔦 ایک جملہ", "🔦 Satu kalimat"], "ما لقيت صوت عربي بهالجهاز. جرّب كروم أو جهاز ثاني، أو نزّل صوت عربي من إعدادات الجهاز.": ["No voice for this language on this device. Try Chrome or another device, or add a voice in the device settings.", "Aucune voix pour cette langue sur cet appareil. Essayez Chrome ou ajoutez une voix dans les réglages.", "No hay voz para este idioma en el dispositivo. Prueba Chrome u otro dispositivo, o añade una voz en los ajustes.", "Bu cihazda bu dil için ses yok. Chrome’u veya başka bir cihazı deneyin ya da ayarlardan ses ekleyin.", "اس ڈیوائس پر اس زبان کی آواز نہیں ملی۔ کروم یا کوئی اور ڈیوائس آزمائیں، یا سیٹنگز سے آواز شامل کریں۔", "Tidak ada suara untuk bahasa ini di perangkat. Coba Chrome atau perangkat lain, atau tambahkan suara di pengaturan."], "↩ درس جديد": ["↩ New lesson", "↩ Nouvelle leçon", "↩ Nueva lección", "↩ Yeni ders", "↩ نیا سبق", "↩ Pelajaran baru"], "📋 نسخ النسخة المبسطة": ["📋 Copy simplified version", "📋 Copier la version simplifiée", "📋 Copiar versión simplificada", "📋 Sade sürümü kopyala", "📋 آسان نسخہ کاپی کریں", "📋 Salin versi sederhana"], "➕ جمع": ["➕ Add", "➕ Addition", "➕ Suma", "➕ Toplama", "➕ جمع", "➕ Penjumlahan"], "➖ طرح": ["➖ Subtract", "➖ Soustraction", "➖ Resta", "➖ Çıkarma", "➖ تفریق", "➖ Pengurangan"], "✖️ ضرب": ["✖️ Multiply", "✖️ Multiplication", "✖️ Multiplicación", "✖️ Çarpma", "✖️ ضرب", "✖️ Perkalian"], "➗ قسمة": ["➗ Divide", "➗ Division", "➗ División", "➗ Bölme", "➗ تقسیم", "➗ Pembagian"], "الرقم الأول": ["First number", "Premier nombre", "Primer número", "Birinci sayı", "پہلا عدد", "Angka pertama"], "الرقم الثاني": ["Second number", "Second nombre", "Segundo número", "İkinci sayı", "دوسرا عدد", "Angka kedua"], "👣 اشرح خطوة خطوة": ["👣 Explain step by step", "👣 Expliquer pas à pas", "👣 Explicar paso a paso", "👣 Adım adım anlat", "👣 قدم بہ قدم سمجھائیں", "👣 Jelaskan langkah demi langkah"], "المستوى:": ["Level:", "Niveau :", "Nivel:", "Seviye:", "سطح:", "Tingkat:"], "سهل (لين ١٠)": ["Easy (up to 10)", "Facile (jusqu’à 10)", "Fácil (hasta 10)", "Kolay (10’a kadar)", "آسان (10 تک)", "Mudah (sampai 10)"], "متوسط (لين ٢٠)": ["Medium (up to 20)", "Moyen (jusqu’à 20)", "Medio (hasta 20)", "Orta (20’ye kadar)", "درمیانہ (20 تک)", "Sedang (sampai 20)"], "صعب (لين ١٠٠)": ["Hard (up to 100)", "Difficile (jusqu’à 100)", "Difícil (hasta 100)", "Zor (100’e kadar)", "مشکل (100 تک)", "Sulit (sampai 100)"], "🎲 سؤال تدريب": ["🎲 Practice question", "🎲 Exercice", "🎲 Pregunta de práctica", "🎲 Alıştırma sorusu", "🎲 مشق کا سوال", "🎲 Soal latihan"], "١٢٣ أرقام عربية": ["١٢٣ Arabic numerals", "١٢٣ Chiffres arabes orientaux", "١٢٣ Números arábigos orientales", "١٢٣ Doğu Arap rakamları", "١٢٣ عربی ہندسے", "١٢٣ Angka Arab"], "اختار العملية واكتب رقمين واضغط «اشرح خطوة خطوة»، أو جرّب «سؤال تدريب».": ["Pick an operation, type two numbers and press “Explain step by step”, or try a “Practice question”.", "Choisissez une opération, saisissez deux nombres puis « Expliquer pas à pas », ou essayez un « Exercice ».", "Elige una operación, escribe dos números y pulsa «Explicar paso a paso», o prueba una «Pregunta de práctica».", "Bir işlem seçin, iki sayı yazıp “Adım adım anlat”a basın ya da “Alıştırma sorusu” deneyin.", "عمل چنیں، دو عدد لکھیں اور «قدم بہ قدم سمجھائیں» دبائیں، یا «مشق کا سوال» آزمائیں۔", "Pilih operasi, ketik dua angka lalu tekan “Jelaskan langkah demi langkah”, atau coba “Soal latihan”."], "🧠 مسألة كلامية": ["🧠 Word problem", "🧠 Problème", "🧠 Problema de palabras", "🧠 Sözel problem", "🧠 لفظی سوال", "🧠 Soal cerita"], "الصق مسألة من الكتاب، والذكاء الاصطناعي يحوّلها لصور وخطوات.": ["Paste a problem from the book and AI turns it into pictures and steps.", "Collez un problème du manuel : l’IA le transforme en images et en étapes.", "Pega un problema del libro y la IA lo convierte en imágenes y pasos.", "Kitaptan bir problem yapıştırın, yapay zekâ onu resim ve adımlara dönüştürsün.", "کتاب سے سوال پیسٹ کریں، AI اسے تصویروں اور مراحل میں بدل دے گا۔", "Tempel soal dari buku, AI mengubahnya jadi gambar dan langkah."], "مثال: عند سارة ١٢ تفاحة، أعطت صديقتها ٥ تفاحات. كم تفاحة بقي معها؟": ["Example: Sara has 12 apples and gives 5 to her friend. How many are left?", "Exemple : Sara a 12 pommes et en donne 5 à son amie. Combien lui en reste-t-il ?", "Ejemplo: Sara tiene 12 manzanas y le da 5 a su amiga. ¿Cuántas le quedan?", "Örnek: Sara’nın 12 elması var, arkadaşına 5 tane veriyor. Kaç tane kaldı?", "مثال: سارہ کے پاس 12 سیب ہیں، اس نے 5 اپنی سہیلی کو دیے۔ کتنے بچے؟", "Contoh: Sara punya 12 apel, ia memberi 5 kepada temannya. Berapa sisanya?"], "✨ حوّلها لصور": ["✨ Turn into pictures", "✨ Transformer en images", "✨ Convertir en imágenes", "✨ Resimlere dönüştür", "✨ تصویروں میں بدلیں", "✨ Ubah jadi gambar"], "قاعد أفهم المسألة...": ["Reading the problem...", "Analyse du problème...", "Analizando el problema...", "Problem okunuyor...", "سوال سمجھا جا رہا ہے...", "Memahami soal..."], "اربط السبورة وشاركها": ["Connect & share the board", "Connecter et partager le tableau", "Conectar y compartir la pizarra", "Tahtayı bağla ve paylaş", "بورڈ جوڑیں اور شیئر کریں", "Hubungkan & bagikan papan"], "في Teams كتبويب ثابت:": ["As a Teams tab:", "Comme onglet Teams :", "Como pestaña de Teams:", "Teams sekmesi olarak:", "Teams ٹیب کے طور پر:", "Sebagai tab Teams:"], "افتحي القناة ← زر ＋ فوق ← «Website» ← الصقي رابط السبورة. وفي Zoom أو Meet: انسخي الرابط وحطيه بالشات، أو شاركي الشاشة.": ["open the channel → ＋ at the top → “Website” → paste the board link. In Zoom or Meet: copy the link into the chat, or share your screen.", "ouvrez le canal → ＋ en haut → « Site web » → collez le lien. Dans Zoom ou Meet : collez le lien dans le chat ou partagez l’écran.", "abre el canal → ＋ arriba → «Sitio web» → pega el enlace. En Zoom o Meet: pega el enlace en el chat o comparte la pantalla.", "kanalı açın → üstteki ＋ → “Website” → tahta bağlantısını yapıştırın. Zoom veya Meet’te: bağlantıyı sohbete yapıştırın ya da ekranı paylaşın.", "چینل کھولیں ← اوپر ＋ ← «Website» ← بورڈ کا لنک پیسٹ کریں۔ Zoom یا Meet میں لنک چیٹ میں ڈالیں یا اسکرین شیئر کریں۔", "buka channel → ＋ di atas → “Website” → tempel tautan papan. Di Zoom atau Meet: tempel tautan di chat atau bagikan layar."], "تبي أدوات أكثر مثل هذي؟": ["Want more tools like this?", "Envie d’autres outils comme celui-ci ?", "¿Quieres más herramientas como esta?", "Bunun gibi daha fazla araç ister misiniz?", "ایسے مزید ٹولز چاہییں؟", "Mau alat lain seperti ini?"], "دروس يومية بالذكاء الاصطناعي للمعلمين والأهالي في غرفة الذكاء الاصطناعي AI ROOM.": ["Daily AI lessons for teachers and parents in the AI ROOM community.", "Des leçons d’IA quotidiennes pour enseignants et parents dans AI ROOM.", "Lecciones diarias de IA para docentes y familias en AI ROOM.", "AI ROOM’da öğretmen ve veliler için günlük yapay zekâ dersleri.", "AI ROOM میں اساتذہ اور والدین کے لیے روزانہ AI اسباق۔", "Pelajaran AI harian untuk guru dan orang tua di AI ROOM."], "مشاركة سبورة فتاح لصعوبات التعلم": ["Share the Fattah Board for Learning Difficulties", "Partager le tableau Fattah", "Compartir la pizarra Fattah", "Fattah Tahtasını paylaş", "فتاح بورڈ شیئر کریں", "Bagikan Papan Fattah"], "الطالبات يصوّرن الرمز بالجوال ويفتحن السبورة": ["Students scan the code with a phone to open the board", "Les élèves scannent le code pour ouvrir le tableau", "Los alumnos escanean el código con el móvil para abrir la pizarra", "Öğrenciler kodu telefonla okutup tahtayı açar", "طلبہ فون سے کوڈ اسکین کر کے بورڈ کھولیں", "Siswa memindai kode dengan ponsel untuk membuka papan"], "Teams": ["Teams", "Teams", "Teams", "Teams", "Teams", "Teams"], "🔑 كلمات جديدة": ["🔑 New words", "🔑 Mots nouveaux", "🔑 Palabras nuevas", "🔑 Yeni kelimeler", "🔑 نئے الفاظ", "🔑 Kata baru"], "→ السابق": ["→ Back", "→ Précédent", "→ Anterior", "→ Geri", "→ پچھلا", "→ Sebelumnya"], "خلصت ✓ ⭐": ["Done ✓ ⭐", "Fini ✓ ⭐", "¡Listo! ✓ ⭐", "Bitti ✓ ⭐", "ہو گیا ✓ ⭐", "Selesai ✓ ⭐"], "⭐ أحسنت! نجمة جديدة": ["⭐ Well done! A new star", "⭐ Bravo ! Une nouvelle étoile", "⭐ ¡Muy bien! Nueva estrella", "⭐ Aferin! Yeni bir yıldız", "⭐ شاباش! نیا ستارہ", "⭐ Hebat! Bintang baru"], "صح! 👏": ["Correct! 👏", "Bravo ! 👏", "¡Correcto! 👏", "Doğru! 👏", "درست! 👏", "Benar! 👏"], "صح! 👏 ⭐": ["Correct! 👏 ⭐", "Bravo ! 👏 ⭐", "¡Correcto! 👏 ⭐", "Doğru! 👏 ⭐", "درست! 👏 ⭐", "Benar! 👏 ⭐"], "قرّبت! جرّب مرة ثانية 💪": ["Almost! Try again 💪", "Presque ! Réessaie 💪", "¡Casi! Inténtalo otra vez 💪", "Az kaldı! Tekrar dene 💪", "قریب تھا! دوبارہ کوشش کریں 💪", "Hampir! Coba lagi 💪"], "قرّبت! جرّب مرة ثانية، أو اضغط «ورني الطريقة» 💪": ["Almost! Try again, or press “Show me how” 💪", "Presque ! Réessaie ou appuie sur « Montre-moi » 💪", "¡Casi! Inténtalo otra vez o pulsa «Muéstrame cómo» 💪", "Az kaldı! Tekrar dene ya da “Nasıl yapılır” a bas 💪", "قریب تھا! دوبارہ کوشش کریں یا «طریقہ دکھائیں» دبائیں 💪", "Hampir! Coba lagi, atau tekan “Tunjukkan caranya” 💪"], "ممتاز! خلصت الدرس": ["Excellent! Lesson finished", "Excellent ! Leçon terminée", "¡Excelente! Lección terminada", "Harika! Ders bitti", "بہترین! سبق مکمل ہو گیا", "Luar biasa! Pelajaran selesai"], "اقرأ الدرس مرة ثانية": ["Read the lesson again", "Relire la leçon", "Leer la lección otra vez", "Dersi tekrar oku", "سبق دوبارہ پڑھیں", "Baca pelajaran lagi"], "سؤال تدريب": ["Practice question", "Exercice", "Pregunta de práctica", "Alıştırma sorusu", "مشق کا سوال", "Soal latihan"], "🔊 اسمع": ["🔊 Listen", "🔊 Écouter", "🔊 Escuchar", "🔊 Dinle", "🔊 سنیں", "🔊 Dengar"], "🔊 اسمع السؤال": ["🔊 Hear the question", "🔊 Écouter la question", "🔊 Escuchar la pregunta", "🔊 Soruyu dinle", "🔊 سوال سنیں", "🔊 Dengar soal"], "👣 ورني الطريقة": ["👣 Show me how", "👣 Montre-moi", "👣 Muéstrame cómo", "👣 Nasıl yapılır", "👣 طریقہ دکھائیں", "👣 Tunjukkan caranya"], "🎲 سؤال ثاني": ["🎲 Another question", "🎲 Autre question", "🎲 Otra pregunta", "🎲 Başka soru", "🎲 دوسرا سوال", "🎲 Soal lain"], "→ رجوع": ["→ Back", "→ Retour", "→ Atrás", "→ Geri", "→ واپس", "→ Kembali"], "الخطوة التالية ←": ["Next step ←", "Étape suivante ←", "Siguiente paso ←", "Sonraki adım ←", "اگلا قدم ←", "Langkah berikutnya ←"], "🎲 جرّب سؤال مثله": ["🎲 Try a similar one", "🎲 Essayer un similaire", "🎲 Prueba uno parecido", "🎲 Benzerini dene", "🎲 ایسا ہی ایک سوال", "🎲 Coba soal serupa"], "حطّ نص الدرس أو صورة الصفحة أول.": ["Add the lesson text or a page photo first.", "Ajoutez d’abord le texte ou une photo de la page.", "Añade primero el texto o una foto de la página.", "Önce ders metnini veya sayfa fotoğrafını ekleyin.", "پہلے سبق کا متن یا صفحے کی تصویر شامل کریں۔", "Masukkan teks pelajaran atau foto halaman dulu."], "الذكاء الاصطناعي مو متاح بهالعرض. افتح الصفحة من رابطها في claude.ai، أو جرّب الدرس الجاهز.": ["AI isn’t available in this view. Open the page from its claude.ai link, or try the sample lesson.", "L’IA n’est pas disponible ici. Ouvrez la page depuis claude.ai ou essayez la leçon d’exemple.", "La IA no está disponible aquí. Abre la página desde claude.ai o prueba la lección de ejemplo.", "Bu görünümde yapay zekâ yok. Sayfayı claude.ai bağlantısından açın ya da örnek dersi deneyin.", "اس ویو میں AI دستیاب نہیں۔ صفحہ claude.ai کے لنک سے کھولیں یا نمونہ سبق آزمائیں۔", "AI tidak tersedia di sini. Buka halaman dari tautan claude.ai, atau coba contoh pelajaran."], "الذكاء الاصطناعي مو متاح بهالعرض. افتح الصفحة من claude.ai وسجّل دخول.": ["AI isn’t available in this view. Open the page on claude.ai and sign in.", "L’IA n’est pas disponible ici. Ouvrez la page sur claude.ai et connectez-vous.", "La IA no está disponible aquí. Abre la página en claude.ai e inicia sesión.", "Bu görünümde yapay zekâ yok. Sayfayı claude.ai’de açıp giriş yapın.", "اس ویو میں AI دستیاب نہیں۔ صفحہ claude.ai پر کھولیں اور سائن اِن کریں۔", "AI tidak tersedia di sini. Buka di claude.ai lalu masuk."], "الرد طلع ناقص، جرّب مرة ثانية.": ["The reply was incomplete, try again.", "Réponse incomplète, réessayez.", "La respuesta llegó incompleta, inténtalo de nuevo.", "Yanıt eksik geldi, tekrar deneyin.", "جواب نامکمل تھا، دوبارہ کوشش کریں۔", "Jawaban tidak lengkap, coba lagi."], "صار خطأ، جرّب مرة ثانية.": ["Something went wrong, try again.", "Une erreur s’est produite, réessayez.", "Algo salió mal, inténtalo de nuevo.", "Bir hata oluştu, tekrar deneyin.", "کچھ غلط ہو گیا، دوبارہ کوشش کریں۔", "Terjadi kesalahan, coba lagi."], "لازم توافق على استخدام Claude بهالصفحة عشان يبسّط الدرس.": ["Please allow Claude on this page so it can simplify the lesson.", "Autorisez Claude sur cette page pour simplifier la leçon.", "Permite usar Claude en esta página para simplificar la lección.", "Dersi sadeleştirmesi için bu sayfada Claude’a izin verin.", "سبق آسان بنانے کے لیے اس صفحے پر Claude کی اجازت دیں۔", "Izinkan Claude di halaman ini agar bisa menyederhanakan pelajaran."], "لازم توافق على استخدام Claude بهالصفحة.": ["Please allow Claude on this page.", "Autorisez Claude sur cette page.", "Permite usar Claude en esta página.", "Bu sayfada Claude’a izin verin.", "اس صفحے پر Claude کی اجازت دیں۔", "Izinkan Claude di halaman ini."], "وايد طلبات ورا بعض، انطر شوي وجرّب.": ["Too many requests, wait a moment and try again.", "Trop de demandes, patientez un peu puis réessayez.", "Demasiadas solicitudes, espera un momento e inténtalo.", "Çok fazla istek, biraz bekleyip tekrar deneyin.", "بہت زیادہ درخواستیں، تھوڑا انتظار کر کے دوبارہ کوشش کریں۔", "Terlalu banyak permintaan, tunggu sebentar lalu coba lagi."], "وايد طلبات ورا بعض، انطر شوي.": ["Too many requests, wait a moment.", "Trop de demandes, patientez un peu.", "Demasiadas solicitudes, espera un momento.", "Çok fazla istek, biraz bekleyin.", "بہت زیادہ درخواستیں، تھوڑا انتظار کریں۔", "Terlalu banyak permintaan, tunggu sebentar."], "الصق المسألة أول.": ["Paste the problem first.", "Collez d’abord le problème.", "Pega primero el problema.", "Önce problemi yapıştırın.", "پہلے سوال پیسٹ کریں۔", "Tempel soalnya dulu."], "ما قدرت أفهم العملية، جرّب تكتبها أوضح.": ["Couldn’t tell the operation, try writing it more clearly.", "Opération non comprise, écrivez-la plus clairement.", "No entendí la operación, escríbela más claro.", "İşlem anlaşılamadı, daha açık yazın.", "عمل سمجھ نہیں آیا، زیادہ واضح لکھیں۔", "Operasinya tidak jelas, tulis lebih jelas."], "القراءة الصوتية مو مدعومة بهالمتصفح": ["Read-aloud isn’t supported in this browser", "La lecture vocale n’est pas prise en charge ici", "La lectura en voz alta no está disponible en este navegador", "Sesli okuma bu tarayıcıda desteklenmiyor", "اس براؤزر میں آواز سے پڑھنا دستیاب نہیں", "Baca suara tidak didukung di browser ini"], "ما قدرت أشغّل الصوت": ["Couldn’t play the audio", "Impossible de lire l’audio", "No se pudo reproducir el audio", "Ses çalınamadı", "آواز نہیں چل سکی", "Suara tidak bisa diputar"], "انسخ ✓ الصقه في وورد واطبعه": ["Copied ✓ paste it in Word and print", "Copié ✓ collez-le dans Word et imprimez", "Copiado ✓ pégalo en Word e imprímelo", "Kopyalandı ✓ Word’e yapıştırıp yazdırın", "کاپی ہو گیا ✓ ورڈ میں پیسٹ کر کے پرنٹ کریں", "Disalin ✓ tempel di Word lalu cetak"], "ما قدرت أنسخ بهالمتصفح": ["Couldn’t copy in this browser", "Copie impossible dans ce navigateur", "No se pudo copiar en este navegador", "Bu tarayıcıda kopyalanamadı", "اس براؤزر میں کاپی نہیں ہو سکا", "Tidak bisa menyalin di browser ini"], "نسخت الرابط ✓ الصقيه بشات زوم": ["Link copied ✓ paste it in the Zoom chat", "Lien copié ✓ collez-le dans le chat Zoom", "Enlace copiado ✓ pégalo en el chat de Zoom", "Bağlantı kopyalandı ✓ Zoom sohbetine yapıştırın", "لنک کاپی ہو گیا ✓ زوم چیٹ میں پیسٹ کریں", "Tautan disalin ✓ tempel di chat Zoom"], "نسخت الرابط ✓ الصقيه بشات الاجتماع": ["Link copied ✓ paste it in the meeting chat", "Lien copié ✓ collez-le dans le chat de la réunion", "Enlace copiado ✓ pégalo en el chat de la reunión", "Bağlantı kopyalandı ✓ toplantı sohbetine yapıştırın", "لنک کاپی ہو گیا ✓ میٹنگ چیٹ میں پیسٹ کریں", "Tautan disalin ✓ tempel di chat rapat"], "نسخت رابط السبورة ✓": ["Board link copied ✓", "Lien du tableau copié ✓", "Enlace de la pizarra copiado ✓", "Tahta bağlantısı kopyalandı ✓", "بورڈ کا لنک کاپی ہو گیا ✓", "Tautan papan disalin ✓"], "اكتب رقمين صحيحين.": ["Enter two whole numbers.", "Saisissez deux nombres entiers.", "Escribe dos números enteros.", "İki tam sayı yazın.", "دو مکمل عدد لکھیں۔", "Masukkan dua bilangan bulat."], "المجموع لازم يكون ١٠٠ أو أقل.": ["The sum must be 100 or less.", "La somme doit être de 100 au maximum.", "La suma debe ser 100 o menos.", "Toplam 100 veya daha az olmalı.", "مجموعہ 100 یا اس سے کم ہونا چاہیے۔", "Jumlahnya harus 100 atau kurang."], "بالطرح: الرقم الأول لازم يكون أكبر، ولين ١٠٠.": ["Subtraction: the first number must be bigger, up to 100.", "Soustraction : le premier nombre doit être plus grand, jusqu’à 100.", "Resta: el primer número debe ser mayor, hasta 100.", "Çıkarma: ilk sayı büyük olmalı, en fazla 100.", "تفریق: پہلا عدد بڑا ہو، 100 تک۔", "Pengurangan: angka pertama harus lebih besar, sampai 100."], "بالضرب: الأرقام لين ١٢.": ["Multiplication: numbers up to 12.", "Multiplication : nombres jusqu’à 12.", "Multiplicación: números hasta 12.", "Çarpma: sayılar en fazla 12.", "ضرب: اعداد 12 تک۔", "Perkalian: angka sampai 12."], "بالقسمة: الأول لين ٦٠ والثاني من ١ لين ١٠.": ["Division: first up to 60, second from 1 to 10.", "Division : le premier jusqu’à 60, le second de 1 à 10.", "División: el primero hasta 60 y el segundo de 1 a 10.", "Bölme: ilki en fazla 60, ikincisi 1–10.", "تقسیم: پہلا 60 تک، دوسرا 1 سے 10۔", "Pembagian: pertama sampai 60, kedua 1–10."], "زائد": ["plus", "plus", "más", "artı", "جمع", "tambah"], "ناقص": ["minus", "moins", "menos", "eksi", "منفی", "kurang"], "ضرب": ["times", "fois", "por", "çarpı", "ضرب", "kali"], "تقسيم": ["divided by", "divisé par", "entre", "bölü", "تقسیم", "dibagi"], "يساوي": ["equals", "égale", "es igual a", "eşittir", "برابر", "sama dengan"], "أَحسَنتَ": ["Well done!", "Bravo !", "¡Muy bien!", "Aferin!", "شاباش!", "Hebat!"], "مُمتاز! أَنهَيتَ الدَّرسَ.": ["Excellent! You finished the lesson.", "Excellent ! Tu as fini la leçon.", "¡Excelente! Terminaste la lección.", "Harika! Dersi bitirdin.", "بہترین! آپ نے سبق مکمل کر لیا۔", "Luar biasa! Kamu menyelesaikan pelajaran."], "، أو": [", or", ", ou", ", o", ", ya da", "، یا", ", atau"], "❓ أسئلة": ["❓ Questions", "❓ Questions", "❓ Preguntas", "❓ Sorular", "❓ سوالات", "❓ Pertanyaan"], "سبورة فتاح لصعوبات التعلم — أداة مجانية تبسّط الدروس وتشرح الرياضيات بالصور": ["Fattah Board for Learning Difficulties — a free tool that simplifies lessons and explains math with pictures", "Tableau Fattah — un outil gratuit qui simplifie les leçons et explique les maths en images", "Pizarra Fattah — herramienta gratuita que simplifica lecciones y explica matemáticas con imágenes", "Fattah Tahtası — dersleri sadeleştiren ve matematiği resimlerle anlatan ücretsiz araç", "فتاح بورڈ — مفت ٹول جو اسباق آسان بناتا اور ریاضی تصویروں سے سمجھاتا ہے", "Papan Fattah — alat gratis yang menyederhanakan pelajaran dan menjelaskan matematika dengan gambar"]};
+window.__I18N_P=[[new RegExp("^الرابط: (.+)$"),["Link: $1", "Lien : $1", "Enlace: $1", "Bağlantı: $1", "لنک: $1", "Tautan: $1"]],[new RegExp("^الجزء (\\S+) من (\\S+)$"),["Part $1 of $2", "Partie $1 sur $2", "Parte $1 de $2", "Bölüm $1 / $2", "حصہ $1 از $2", "Bagian $1 dari $2"]],[new RegExp("^سؤال (\\S+) من (\\S+)$"),["Question $1 of $2", "Question $1 sur $2", "Pregunta $1 de $2", "Soru $1 / $2", "سوال $1 از $2", "Soal $1 dari $2"]],[new RegExp("^جاوبت (\\S+) من (\\S+) صح$"),["You got $1 of $2 right", "$1 bonnes réponses sur $2", "Acertaste $1 de $2", "$2 sorudan $1 doğru", "$2 میں سے $1 درست", "Benar $1 dari $2"]],[new RegExp("^عندنا (.+)$"),["We have $1", "On a $1", "Tenemos $1", "Elimizde $1 var", "ہمارے پاس $1 ہیں", "Kita punya $1"]],[new RegExp("^نضيف (.+)$"),["We add $1", "On ajoute $1", "Sumamos $1", "$1 ekliyoruz", "ہم $1 جمع کرتے ہیں", "Kita tambah $1"]],[new RegExp("^نشيل (.+)$"),["We take away $1", "On enlève $1", "Quitamos $1", "$1 çıkarıyoruz", "ہم $1 نکالتے ہیں", "Kita ambil $1"]],[new RegExp("^نعدّ الكل: (.+)$"),["Count them all: $1", "On compte tout : $1", "Contamos todo: $1", "Hepsini sayalım: $1", "سب گنیں: $1", "Hitung semua: $1"]],[new RegExp("^الباقي: (.+)$"),["What’s left: $1", "Il reste : $1", "Quedan: $1", "Kalan: $1", "باقی: $1", "Sisanya: $1"]],[new RegExp("^الباقي (.+)$"),["Left over $1", "Reste $1", "Sobran $1", "Kalan $1", "باقی $1", "Sisa $1"]],[new RegExp("^(.+) صفوف$"),["$1 rows", "$1 rangées", "$1 filas", "$1 sıra", "$1 قطاریں", "$1 baris"]],[new RegExp("^في كل صف (.+)$"),["$1 in each row", "$1 dans chaque rangée", "$1 en cada fila", "Her sırada $1", "ہر قطار میں $1", "$1 di setiap baris"]],[new RegExp("^نعدّ بالقفز: (.+)$"),["Skip-count: $1", "On compte par bonds : $1", "Contamos de salto en salto: $1", "Atlayarak sayalım: $1", "چھلانگ لگا کر گنیں: $1", "Hitung loncat: $1"]],[new RegExp("^نوزّعها على (.+) صحون بالتساوي$"),["Share them equally on $1 plates", "On les partage sur $1 assiettes", "Las repartimos en $1 platos por igual", "$1 tabağa eşit paylaştırıyoruz", "انہیں $1 پلیٹوں میں برابر بانٹیں", "Bagi rata ke $1 piring"]],[new RegExp("^في كل صحن (.+)، ويبقى (.+)$"),["$1 on each plate, $2 left over", "$1 par assiette, il reste $2", "$1 en cada plato y sobran $2", "Her tabakta $1, $2 artıyor", "ہر پلیٹ میں $1، اور $2 باقی", "$1 di tiap piring, sisa $2"]],[new RegExp("^في كل صحن (.+)$"),["$1 on each plate", "$1 par assiette", "$1 en cada plato", "Her tabakta $1", "ہر پلیٹ میں $1", "$1 di tiap piring"]],[new RegExp("^(\\d+) (زائد|ناقص|ضرب|تقسيم) (\\d+) يساوي كم؟$"),["What is $1 $2 $3?", "Combien font $1 $2 $3 ?", "¿Cuánto es $1 $2 $3?", "$1 $2 $3 kaç eder?", "$1 $2 $3 کتنے ہوتے ہیں؟", "Berapa $1 $2 $3?"]],[new RegExp("^الأرقام كبيرة على الرسم: (.+)$"),["Numbers too big to draw: $1", "Nombres trop grands à dessiner : $1", "Números demasiado grandes para dibujar: $1", "Sayılar çizim için çok büyük: $1", "اعداد ڈرائنگ کے لیے بڑے ہیں: $1", "Angka terlalu besar untuk digambar: $1"]]];
+Object.assign(window.__I18N_D,{
+"تحويل الدرس يشتغل من نسخة Claude بس.":["Lesson adapting works only in the Claude version.","L’adaptation des leçons ne marche que dans la version Claude.","Adaptar lecciones solo funciona en la versión de Claude.","Ders uyarlama yalnızca Claude sürümünde çalışır.","سبق آسان بنانا صرف Claude ورژن میں کام کرتا ہے۔","Penyesuaian pelajaran hanya berjalan di versi Claude."],
+"تحويل المسائل يشتغل من نسخة Claude بس.":["Turning problems into pictures works only in the Claude version.","La conversion des problèmes ne marche que dans la version Claude.","Convertir problemas solo funciona en la versión de Claude.","Problemleri dönüştürme yalnızca Claude sürümünde çalışır.","سوالوں کو تصویروں میں بدلنا صرف Claude ورژن میں ہوتا ہے۔","Mengubah soal hanya berjalan di versi Claude."],
+"افتح نسخة الذكاء الاصطناعي ←":["Open the AI version ←","Ouvrir la version IA ←","Abrir la versión con IA ←","Yapay zekâ sürümünü aç ←","AI ورژن کھولیں ←","Buka versi AI ←"],
+"أو جرّب الدرس الجاهز.":["Or try the sample lesson.","Ou essayez la leçon d’exemple.","O prueba la lección de ejemplo.","Ya da örnek dersi deneyin.","یا نمونہ سبق آزمائیں۔","Atau coba contoh pelajaran."]});
+window.__I18N_SKIP='script,style,textarea,[data-notr],[contenteditable],.slogan:first-of-type';
+window.__I18N_MOUNT=function(sel){var h=document.querySelector('header .hgrp');h.insertBefore(sel,h.firstChild);};
+</script>
+<script>
+(function(){
+var LANGS=[['ar','العربية'],['en','English'],['fr','Français'],['es','Español'],['tr','Türkçe'],['ur','اردو'],['id','Bahasa Indonesia']];
+var IDX={en:0,fr:1,es:2,tr:3,ur:4,id:5},RTL={ar:1,ur:1};
+var D=window.__I18N_D||{},P=window.__I18N_P||[];
+var SKIP=window.__I18N_SKIP||'script,style,textarea,[data-notr],[contenteditable]';
+var DIRSEL=window.__I18N_DIRSEL||'';var ASKIP=window.__I18N_ASKIP||'[data-notr]';
+var KEY='fattah.lang',L='ar';
+try{L=localStorage.getItem(KEY)||'ar';}catch(e){}
+if(!LANGS.some(function(x){return x[0]===L;}))L='ar';
+function tr(s){
+  if(L==='ar'||s==null)return s;s=String(s);var k=s.trim();if(!k)return s;var i=IDX[L],e=D[k];
+  if(e&&e[i])return s.replace(k,e[i]);
+  for(var j=0;j<P.length;j++){var m=k.match(P[j][0]);if(m&&P[j][1][i]){var out=P[j][1][i].replace(/\$(\d)/g,function(_,n){return tr(m[n]||'');});return s.replace(k,out);}}
+  return s;}
+var TX=new WeakMap(),AT=new WeakMap(),ATTRS=['title','aria-label','placeholder'];
+function textNode(n){var p=n.parentElement;if(!p||p.closest(SKIP))return;var r=TX.get(n);if(!r||n.data!==r.out)r={src:n.data};r.out=tr(r.src);TX.set(n,r);if(n.data!==r.out)n.data=r.out;}
+function el(e){if(!e.closest||e.closest(ASKIP))return;var m=AT.get(e)||{};ATTRS.forEach(function(a){if(!e.hasAttribute(a))return;var v=e.getAttribute(a),r=m[a];if(!r||v!==r.out)r={src:v};r.out=tr(r.src);m[a]=r;if(v!==r.out)e.setAttribute(a,r.out);});AT.set(e,m);}
+function walk(root){if(!root)return;if(root.nodeType===3){textNode(root);return;}if(root.nodeType!==1)return;el(root);var w=document.createTreeWalker(root,5),n;while((n=w.nextNode())){if(n.nodeType===3)textNode(n);else el(n);}}
+var T0=document.title;
+function setDir(){var d=RTL[L]?'rtl':'ltr';document.documentElement.dir=d;document.documentElement.lang=L;if(DIRSEL)document.querySelectorAll(DIRSEL).forEach(function(x){x.dir=d;});document.title=tr(T0);}
+function apply(){setDir();walk(document.body);}
+function setLang(v){L=v;try{localStorage.setItem(KEY,v);}catch(e){}apply();var s=document.getElementById('langSel');if(s)s.value=v;window.dispatchEvent(new Event('langchange'));}
+window.I18N={tr:tr,setLang:setLang,get lang(){return L;},LANGS:LANGS};
+var sel=document.createElement('select');sel.id='langSel';sel.setAttribute('data-notr','');sel.setAttribute('aria-label','Language / اللغة');sel.title='🌐';
+LANGS.forEach(function(x){var o=document.createElement('option');o.value=x[0];o.textContent='🌐 '+x[1];sel.appendChild(o);});
+sel.value=L;sel.addEventListener('change',function(){setLang(sel.value);});
+if(window.__I18N_MOUNT)window.__I18N_MOUNT(sel);
+apply();
+new MutationObserver(function(ms){ms.forEach(function(m){if(m.type==='childList')m.addedNodes.forEach(walk);else if(m.type==='characterData')textNode(m.target);else el(m.target);});})
+ .observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:ATTRS});
+if(L!=='ar')setTimeout(function(){window.dispatchEvent(new Event('langchange'));},0);
+})();
+</script>
+</body>
+</html>
